@@ -7,19 +7,25 @@
 Resolving a contact removes their interpenetration.  
 Contacts can be used to rep positional joints, by making 
 the contact constraint keep the bodies in their correct orientation*/
-
-
 namespace cyclone{
+/*Forward declaration*/
+class ContactResolver;
+
+
 class Contact {
+    /*Contact Resolver needs access to internals*/
+    friend ContactResolver;
     public:
-        /*Holds pos of contact in world coordinates*/
+
+        /*Holds pos of contact in world coordinates. Initiated with contact*/
         Vector3 contactPoint;
 
-        /*Holds the contact normal dir in world coordinates*/
+        /*Holds the contact normal dir in world coordinates. Initiated with contact*/
         Vector3 contactNormal;
 
         /*Holds the transformation matrix that 
-        transforms contact coordinates to world coordinates*/
+        transforms contact coordinates to world coordinates.
+        Calculateed when internals are calculates*/
         Matrix3 contactToWorld;
 
         /*Holds the closing velocity of the contact.
@@ -28,19 +34,21 @@ class Contact {
 
         /*Holds the depth of penetration at the contact point. 
         If both bodies are specified then the contact point should 
-        be midway between the inter-penetrating points*/
+        be midway between the inter-penetrating points. . Initiated with contact*/
         real penetration;
 
-        /*Holds the 2 bodies in contact*/
+        /*Holds the 2 bodies in contact. . Initiated with contact*/
         RigidBody *body[2];
 
-        /*Holds the restitution coefficient (bounciness). Values between 0 and 1*/
+        /*Holds the restitution coefficient (bounciness). 
+        Values between 0 and 1. Initiated with contact*/
         real restitution;
 
-        /*Holds the lateral friction coefficient at the contact*/
+        /*Holds the lateral friction coefficient at the contact. Initiated with contact*/
         real friction;
 
-        /*Holds the desired change in velocity required to resolve the contact*/
+        /*Holds the desired change in velocity required to resolve the contact. 
+        Calculated when internals are claculated*/
         real desiredDeltaVelocity;
 
         /*Holds the velocity change of the two objects when impulse is applied*/
@@ -57,15 +65,15 @@ class Contact {
         /*Holds the impulse. Updated when we calculate internals*/
         Vector3 impulse;
 
-        /*Holds the angular inertia for both bodies*/
+        /*Holds the angular inertia for both bodies. Updated when we fix interpenetration*/
         real angularInertia[2];
 
-        /*Holds the linear inertia for both bodies*/
+        /*Holds the linear inertia for both bodies. Updated when we fix interpentration*/
         real linearInertia[2];
 
-        /*Holds the total inertia of both bodies involved in collision*/
+        /*Holds the total inertia of both bodies involved in collision. Updated when we fix interpenetration*/
         real totalInertia;
-        
+
         /*Set contact data
         @param ContactPoint point of contact in world coordinates
         @param contactNormal holds contact normal
@@ -93,16 +101,16 @@ class Contact {
         void calculateContactBasis();
 
         /*Calculate The size of impulse*/
-        void calcFrictionlessImpulse();
+        void calcImpulse();
         
         /*Calculates the contact velocity and updates the contactVelocity member*/
-        void calcContactVelocity();
+        void calcContactVelocity(real duration);
 
         /*Calculates the desired change in velocity and updates the desiredDeltaVelocity member*/
         void calcDesiredDeltaVelocity(real duration);
 
-        /*Calculates required size of impulse. Applies the change in velocities and positions.*/
-        void applyImpulse(Matrix3 &inverseInertiaTensor);
+        /*Applies the change in angular and linear velocities.*/
+        void applyImpulse();
 
         /*Calculates the relative positions of the contact point 
         to each body and updates the relativeContactPosition data member*/
@@ -110,6 +118,33 @@ class Contact {
 
         /*Resolves interpenetration using the nonlinear projection method*/
         void fixInterpenetration();
+
+        /*Calculates the matrix that converts from contact to world coordinates*/
+        void calcContactToWorld();
+
+        void matchAwakeState();
+};
+
+/*The contact resolution routine. One resolver instance can be shared for the whole simulation*/
+class ContactResolver {
+    real penetrationEpsilon = 0.01;
+    real velocityEpsilon = 0.01;
+    public:
+    /*Resolves a set of contacts for both penetration and velocity.*/
+    void resolveContacts(Contact *contactArray, unsigned numContacts, real duration, unsigned numPosIterations=1000, unsigned numVelocityIterations=1000);
+
+    protected:
+    /*Sets up contacts ready for processing by calculating its internal data*/
+    void prepareContacts(Contact *contactArray, unsigned numContacts, real duration);
+
+    /*Fixes interpenetration*/
+    void adjustPositions(Contact *contacts, unsigned numContacts, real duration, unsigned numPosIterations);
+
+    /*Adjusts the velocities of colliding objects*/
+    void adjustVelocities(Contact *contacts, unsigned numContacts, real duration, unsigned numVelocityPositions);
+
+    /*Updates penetration values after a contact has been resolved*/
+    void updatePenetration(Contact *contacts, unsigned numContacts, real duration, unsigned numVelocityPositions);
 };
 
 /*This is the basic polymorphic interface for contact generators applying to rigid bodies*/

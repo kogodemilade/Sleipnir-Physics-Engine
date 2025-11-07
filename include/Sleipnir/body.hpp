@@ -62,11 +62,27 @@ class RigidBody {
         /*Holds the linear accleration of the body in the previous frame*/
         Vector3 lastFrameAcceleration;
 
+        /*Holds the amount of motion of the body. This is a recency-
+        weighted mean that can be used to put a body to sleep.*/
+        real motion;
+
+        /*A body can be put to sleep to avoid it being 
+        updated by the integration functions or affected by 
+        collisions with the world*/
+        bool isAwake;
+
+        /*Some bodies may never be allowed to fall asleep. 
+        User-controlled bodies, for example, should be always awake.*/
+        bool canSleep;
+
+        /*Threshold to dheck when deciding whether a body is asleep or not*/
+        real sleepEpsilon=0.2;
+
     public:
         /*Creates a new rigid body instance*/
         RigidBody();
 
-        /*Creates a new rigid body instance given mass, position and orientation*/
+        /*Creates a new rigid body instance given mass, position and orientation. Set mass=0 or REAL_MAX for infinitely heavy weights*/
         RigidBody(real mass, Vector3 &pos, Quaternion &orientation);
 
         /*Calculates internal data from state data.
@@ -141,46 +157,50 @@ class RigidBody {
         Vector3 getVelocity() const;
 
         /*set velocity of body in world space*/
-        void setVelocity(Vector3 &vel);
+        void setVelocity(const Vector3 &vel);
 
         /*Update velocity of body in world space. Equivalent to: setVelocity(getvelocity()+addition)*/
         void updateVelocity(Vector3 &addedVelocity);
 
         /*Update rotation of body in world space. Equivalent to: setRotation(getRotation()+addition)*/
         void updateRotation(Vector3 &addedRotation);
+        
+        /*Rotate body by a vector.
+        @param rot The vector containing the rotation*/
+        void rotateByVector(Vector3 &rot);
 
         /*Update position of body in world space. Equivalent to: setPosition(getPosition)+addition)*/
         void updatePosition(Vector3 &addedPos);
 
         /*Get acceleration of body in world space*/
-        Vector3 getAcceleration();
+        Vector3 getAcceleration() const;
 
         /*Set acceleration of bosy in world space*/
-        void setAcceleration(Vector3 &acc);
+        void setAcceleration(const Vector3 &acc);
 
         /*Get angular acceleration of body in world space*/
-        Vector3 getAngAcceleration();
+        Vector3 getAngAcceleration() const;
 
         /*Set angular acceleration of body in world space*/
-        void setAngAcceleration(Vector3 &angAcceleration);
+        void setAngAcceleration(const Vector3 &angAcceleration);
 
         /*Get Inverse Inertia tensor*/
-        Matrix3 getInvInertiaTensor() const;
+        const Matrix3& getInvInertiaTensor() const;
 
         /*Set Inverse Inertia tensor*/
         void setInvInertiaTensor(const Matrix3 &invInertiaTensor);
 
         /*Get Inverse Inertia tensor in world coordinates*/
-        Matrix3 getInvInertiaTensorWorld();
+        const Matrix3& getInvInertiaTensorWorld() const;
 
         /*Set Inverse Inertia tensor in world coordinates*/
         void setInvInertiaTensorWorld(const Matrix3 &invInertiaTensor);
 
         /*Get point in local space*/
-        Vector3 getPointInLocalSpace(const Vector3 &point);
+        Vector3 getPointInLocalSpace(const Vector3 &point) const;
 
         /*Get point in world space*/
-        Vector3 getPointInWorldSpace(const Vector3 &point);
+        Vector3 getPointInWorldSpace(const Vector3 &point) const;
 
         /*Integrate one step to the next frame*/
         void integrate(real duration);
@@ -191,7 +211,29 @@ class RigidBody {
         /*Set transform matrix*/
         void setTransform(const Matrix4 &transformMatrix);
 
+        /*Sets sleep epsilon. Defaults to 0.2*/
+        void setSleepEpsilon(real eps=0.2);
+
+        /*Gets sleep epsilon*/
+        real getSleepEpsilon() const;
+
         /*Get the previous acceleration*/
         Vector3 RigidBody::getPrevAcceleration();
+
+        /*set wake states bodies*/
+        void setAwake(const bool awake);
+
+        /*Check whether an object is asleep*/
+        bool getState() const;
+
+        /*Getter method for canSleeo*/
+        bool getCanSleep() const;
+
+        /*Setter method for canSleep*/
+        void setCanSleep(bool sleepable);
+
+        /*check whether a body should be put to sleep and sleep if so*/
+        void checkShouldSleep(real bias=0.8f,  real duration);
+
 };
 }

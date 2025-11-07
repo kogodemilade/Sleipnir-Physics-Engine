@@ -80,6 +80,17 @@ class Vector3 {
         }
     }
 
+    /*Turns a non-zero vector into a vector into a vector of unit length*/
+    Vector3 returnNormalizedVec() const{
+        real l = magnitude();
+        if (l>0){
+            Vector3 res = *this;
+            res*=((real)1)/l;
+            return res;
+        }
+        else return Vector3(0,0,0);
+    }
+
 
     /*Adds the given vector to this.*/
     void operator +=(const Vector3 &v){
@@ -156,13 +167,17 @@ class Vector3 {
         *this = vectorProduct(vector);
     }
 
-    //Returns a transformed a Vector from local positioning to global positioning
+    /*Returns a transformed Vector3 from local positioning 
+    to global positioning (transforms given vector by transform matrix)
+    @see worldToLocal*/
     Vector3 localToWorld(const Vector3 &local, const Matrix4 &transform) const;
 
     //Transforms given vector from local positioning to global positioning
     void setWorldVec(const Matrix4 &transform);
 
-    //Returns a transformed a Vector from global positioning to local positioning
+    /*Returns a transformed ector from global positioning to local positioning.
+    (transforms given vector by inverse (transpose) of given transform matrix).
+    @see localToWorld*/
     Vector3 worldToLocal(const Vector3 &world, const Matrix4 &transform) const;
 
     //Transforms given vector from global positioning to local positioning
@@ -178,10 +193,17 @@ class Vector3 {
 
     void setWorldVecDirn(const Matrix4 &transform);
 
+    /*Creates a skew-symetric matrix based on the vector. 
+    The skew-symmetrix matrix is the equivalent of the vector product.
+    if a,b are vectors, axb = A_s.b, where A_s is the skew symmetric matrix of a*/
+    Matrix3 Vector3::skewSymmetricMatrix();
+
     //zero all components of vector
     void clear(){
         x=y=z=0;
     }
+
+
 
 };
 
@@ -205,15 +227,31 @@ class Vector3 {
 
     /*Sets the columns of the matrix, where a, b and c are column vectors*/
     void setComponents(const Vector3 &a, const Vector3 &b, const Vector3 &c);
+
     /*Returns the result of a 3x3 Matrix multiplied by the given column vector*/
     Vector3 operator *(const Vector3 &vec) const;
+
+    /*Returns the result of multiplying each member by a scalar*/
+    Matrix3 operator *(int num) const;
+
+    /*Updates matrix by multiplying each member by num*/
+    void operator*=(int num);
+
+    /*Returns the addition of two matrices*/
+    Matrix3 operator +(const Matrix3 &other) const;
+
+    /*Updates the matrix by adding the other one*/
+    void operator +=(const Matrix3 &other);
 
     /*Alias for the * operator
     @see operator **/
     Vector3 transform(const Vector3 &vec) const;
 
     /*Returns the result of the multiplication of this matrix and the given matrix.*/
-    Matrix3 operator *(Matrix3 other) const;
+    Matrix3 operator *(const Matrix3 &other) const;
+
+    /*Updates this matrix by the multiplication of this matrix and the given matrix.*/
+    void operator *=(const Matrix3 &other);
 
     /*Sets the inverse of the given 3x3 matrix*/
     void setInverse(const Matrix3 &m);

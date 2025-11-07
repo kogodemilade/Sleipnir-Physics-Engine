@@ -24,8 +24,8 @@ static inline void _checkInverseInertiaTensor(const Matrix3 &inverseInertiaTenso
     //Todo: perform a validity check in an assert
 }
 
-/*Internal func to do an inertia tensor transform by a quaternion. (This was created by an automated code generator)*/
-static inline void _transformInertiaTensor(Matrix3 &iitWorld, const Quaternion &q, const Matrix3 &iitBody, const Matrix4 &rotmat) {
+/*Internal func to do an inertia tensor transform by a rotation matrix. (This was created by an automated code generator)*/
+static inline void _transformInertiaTensor(Matrix3 &iitWorld, const Matrix3 &iitBody, const Matrix4 &rotmat) {
     real t4 = rotmat.data[0]*iitBody.data[0]+rotmat.data[1]*iitBody.data[3]+rotmat.data[2]*iitBody.data[6];
     real t9 = rotmat.data[0]*iitBody.data[1]+rotmat.data[1]*iitBody.data[4]+rotmat.data[2]*iitBody.data[7];
     real t14 = rotmat.data[0]*iitBody.data[2]+rotmat.data[1]*iitBody.data[5]+rotmat.data[2]*iitBody.data[8];
@@ -50,8 +50,8 @@ static inline void _transformInertiaTensor(Matrix3 &iitWorld, const Quaternion &
 RigidBody::RigidBody(){}
 
 RigidBody::RigidBody(real _mass, Vector3 &pos, Quaternion &orient){
-    if (_mass==0)
-    {inverseMass = REAL_MAX;}
+    if (_mass==0 || _mass==REAL_MAX)
+    {inverseMass = 0.0f;}
     else{
     inverseMass = (real)1/_mass;}
 
@@ -59,7 +59,7 @@ RigidBody::RigidBody(real _mass, Vector3 &pos, Quaternion &orient){
 
     orientation = orient;
 }
-
+ 
 bool RigidBody::hasFiniteMass(){
     if (inverseMass > 0.0) return 1;
     else return 0;
@@ -73,12 +73,14 @@ void RigidBody::setInertiaTensor(const Matrix3 &inertiaTensor){
 
 void RigidBody::calculateDerivedData(){
     orientation.normalize();
-    //Calculate the inertiaTensor in world space.
-    _transformInertiaTensor(inverseInertiaTensorWorld, orientation, inverseInertiaTensor, transformMatrix);
     _calculateTransformMatrix(transformMatrix, position, orientation);
+    //Calculate the inertiaTensor in world space.
+    _transformInertiaTensor(inverseInertiaTensorWorld, inverseInertiaTensor, transformMatrix);
+    
 }
 
 void RigidBody::addForce(const Vector3 &force){
+    setAwake(1);
     forceAccum += force;
 }
 
@@ -95,6 +97,7 @@ void RigidBody::addForceAtBodyPoint(const Vector3 &force, const Vector3 &point) 
 }
 
 void RigidBody::addForceAtPoint(const Vector3 &force, const Vector3 &point){
+    setAwake(1);
     Vector3 pt = point;
     pt -= position;
     
@@ -103,6 +106,7 @@ void RigidBody::addForceAtPoint(const Vector3 &force, const Vector3 &point){
 }
 
 void RigidBody::addTorque(const Vector3 &torque){
+    setAwake(1);
     torqueAccum += torque;
 }
 
@@ -157,11 +161,11 @@ Vector3 RigidBody::getVelocity() const{
     return velocity;
 }
 
-void RigidBody::setVelocity(Vector3 &vel){
+void RigidBody::setVelocity(const Vector3 &vel){
     velocity = vel;
 }
 
-Vector3 RigidBody::getAcceleration(){
+Vector3 RigidBody::getAcceleration() const{
     return acceleration;
 }
 
@@ -169,19 +173,19 @@ Vector3 RigidBody::getPrevAcceleration(){
     return lastFrameAcceleration;
 }
 
-void RigidBody::setAcceleration(Vector3 &acc){
+void RigidBody::setAcceleration(const Vector3 &acc){
     acceleration = acc;
 }
 
-Vector3 RigidBody::getAngAcceleration(){
+Vector3 RigidBody::getAngAcceleration() const{
     return angularAcceleration;
 }
 
-void RigidBody::setAngAcceleration(Vector3 &angAcceleration){
+void RigidBody::setAngAcceleration(const Vector3 &angAcceleration){
     angularAcceleration = angAcceleration;
 }
 
-Matrix3 RigidBody::getInvInertiaTensor() const{
+const Matrix3& RigidBody::getInvInertiaTensor() const{
     return inverseInertiaTensor;
 }
 
@@ -189,7 +193,7 @@ void RigidBody::setInvInertiaTensor(const Matrix3 &invInertiaTensor){
     inverseInertiaTensor = invInertiaTensor;
 }
 
-Matrix3 RigidBody::getInvInertiaTensorWorld(){
+const Matrix3& RigidBody::getInvInertiaTensorWorld() const{
     return inverseInertiaTensorWorld;
 }
 
@@ -209,11 +213,15 @@ void RigidBody::updatePosition(Vector3 &addedPos){
     position += addedPos; 
 }
 
-Vector3 RigidBody::getPointInLocalSpace(const Vector3 &pt){
+void RigidBody::rotateByVector(Vector3 &rot){
+    orientation.rotateByVector(rot);
+}
+
+Vector3 RigidBody::getPointInLocalSpace(const Vector3 &pt) const{
     return transformMatrix.transformInverse(pt);
 }
 
-Vector3 RigidBody::getPointInWorldSpace(const Vector3 &pt){
+Vector3 RigidBody::getPointInWorldSpace(const Vector3 &pt) const{
     return transformMatrix.transform(pt);
 }
 
@@ -225,13 +233,62 @@ Matrix4 RigidBody::getTransform() const{
 //     transformM = transformMatrix_;
 // }
 
+void RigidBody::setSleepEpsilon(real eps){
+    sleepEpsilon = eps;
+}
+
+real RigidBody::getSleepEpsilon() const{
+    return sleepEpsilon;
+}
+
+void RigidBody::setAwake(const bool awake){
+    if (awake) {
+        isAwake=true;
+        /*Add a bit of motion to avoid it falling asleep immediately*/
+        motion = sleepEpsilon*2.0f;
+    } else {
+        isAwake = false;
+        velocity.clear();
+        rotation.clear();
+    }
+}
+
+bool RigidBody::getState() const{
+    return isAwake;
+}
+
+bool RigidBody::getCanSleep() const{
+    return canSleep;
+}
+
+void RigidBody::setCanSleep(bool sleepable){
+    canSleep = sleepable;
+}
+
+void RigidBody::checkShouldSleep(real _bias, real duration){
+    /* A mass-independent approximation of total kinetic energy the body experiencex*/
+    real currentMotion = velocity.scalarProduct(velocity) + rotation.scalarProduct(rotation);
+
+    /*Recency weighted Sverage for a rolling average of the motion (or energy)*/
+    real bias = real_pow(_bias, duration);
+    motion = bias*motion + (1-bias)*currentMotion;
+
+    if (motion > 10*sleepEpsilon) motion = 10*sleepEpsilon;
+    
+    if (motion < sleepEpsilon && isAwake){
+        setAwake(false);
+    }
+}
+
 void RigidBody::integrate(real duration) {
+    if (!isAwake) return;
+    checkShouldSleep(0.8, duration);
     //Calculate linear acceleration from force inputs.
     lastFrameAcceleration = acceleration;
     lastFrameAcceleration.addScaledVector(forceAccum, inverseMass);
 
     //Calculate angular acceleration from torque inputs
-    Vector3 angularAcceleration = inverseInertiaTensorWorld.transform(torqueAccum);
+    angularAcceleration = inverseInertiaTensorWorld.transform(torqueAccum);
 
     //Adjust velocities
     //Update linear velocity from both acceleration and impulse
@@ -250,10 +307,6 @@ void RigidBody::integrate(real duration) {
 
     //update angular position
     orientation.addScaledVector(rotation, duration);
-
-    //impose drag.
-    velocity *= real_pow(linearDamping, duration);
-    rotation *= real_pow(angularDamping, duration);
 
     /*Normalize orientation and update matrices with new pos and orientation*/
     calculateDerivedData();

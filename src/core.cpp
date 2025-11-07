@@ -46,6 +46,18 @@ void Vector3::setWorldVecDirn(const Matrix4 &transform) {
     z = tmp.z;
 }
 
+Matrix3 Vector3::skewSymmetricMatrix(){
+    Matrix3 res;
+    res.data[0] = res.data[4] = res.data[8] = 0;
+    res.data[1] = -z;
+    res.data[2] = y;
+    res.data[3] = z;
+    res.data[5] = -x;
+    res.data[6] = -y;
+    res.data[7] = x;
+}
+
+
 
 Matrix4::Matrix4(){
     real data[12];
@@ -235,7 +247,7 @@ Vector3 Matrix3::transform(const Vector3 &vec) const{
     return (*this)*vec;
 }
 
-Matrix3 Matrix3::operator *(Matrix3 other) const{
+Matrix3 Matrix3::operator *(const Matrix3 &other) const{
     Matrix3 res;
     res.data[0] = data[0]*other.data[0] + data[1]*other.data[3] + data[2]*other.data[6];
     res.data[1] = data[0]*other.data[1] + data[1]*other.data[4] + data[2]*other.data[7];
@@ -283,6 +295,38 @@ Matrix3 Matrix3::inverse() const {
     return result;
 }
 
+Matrix3 Matrix3::operator*(int num) const{
+    Matrix3 res;
+    for (int i=0; i<9; i++){
+        res.data[i] = data[i] * num;
+    }
+    return res;
+}
+
+void Matrix3::operator*=(int num){
+    for (int i=0; i<9; i++){
+        data[i] = data[i] * num;
+    }
+}
+
+Matrix3 Matrix3::operator +(const Matrix3 &other) const{
+    Matrix3 res;
+    for(int i=0; i<9; i++){
+        res.data[i] =data[i] + other.data[i];
+    }
+    return res;
+}
+
+void Matrix3::operator +=(const Matrix3 &other){
+    for(int i=0; i<9; i++){
+        data[i] = data[i] + other.data[i];
+    }
+}
+
+void Matrix3::operator*=(const Matrix3 &other){
+    *this = (*this)*other;
+}
+
 void Matrix3::setTranspose(const Matrix3 &m) {
     data[0] = m.data[0];
     data[1] = m.data[3];
@@ -304,6 +348,7 @@ Matrix3 Matrix3::transpose() const {
     result.setTranspose(*this);
     return result;
 }
+
 
 void Matrix3::setOrientation(const Quaternion &q){
     data[0] = 1 - (2*q.y*q.y + 2*q.z*q.z);

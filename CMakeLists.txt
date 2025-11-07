@@ -7,4 +7,5 @@ set(CMAKE_CXX_FLAGS "-O2")
 include_directories(include)
 file(GLOB SOURCES "src/*.cpp")
 
+find_package(glfw3 REQUIRED)
 add_executable(physics_test ${SOURCES})
