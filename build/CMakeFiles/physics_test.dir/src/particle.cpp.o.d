@@ -8,9 +8,9 @@ CMakeFiles/physics_test.dir/src/particle.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/long-double.h \
  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/particle.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/core.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/precision.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/particle.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/core.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/precision.hpp \
  /usr/include/c++/13/cmath /usr/include/c++/13/bits/requires_hosted.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h \

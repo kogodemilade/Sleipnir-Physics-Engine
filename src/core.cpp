@@ -55,6 +55,7 @@ Matrix3 Vector3::skewSymmetricMatrix(){
     res.data[5] = -x;
     res.data[6] = -y;
     res.data[7] = x;
+    return res;
 }
 
 
@@ -295,7 +296,7 @@ Matrix3 Matrix3::inverse() const {
     return result;
 }
 
-Matrix3 Matrix3::operator*(int num) const{
+Matrix3 Matrix3::operator*(real num) const{
     Matrix3 res;
     for (int i=0; i<9; i++){
         res.data[i] = data[i] * num;
@@ -303,7 +304,7 @@ Matrix3 Matrix3::operator*(int num) const{
     return res;
 }
 
-void Matrix3::operator*=(int num){
+void Matrix3::operator*=(real num){
     for (int i=0; i<9; i++){
         data[i] = data[i] * num;
     }
@@ -375,7 +376,7 @@ void Quaternion::normalize() {
     real d = w * (w+x) * (x+y) * (y+z) * z;
 
     //Check for zero length quaternion, and use the no-rotation quaternion in that case.
-    if (d==0) {
+    if (fabs(d) < 0.001){
         w=1;
         return;
     }

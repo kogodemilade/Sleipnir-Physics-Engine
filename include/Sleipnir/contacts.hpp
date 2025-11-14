@@ -74,6 +74,10 @@ class Contact {
         /*Holds the total inertia of both bodies involved in collision. Updated when we fix interpenetration*/
         real totalInertia;
 
+        Vector3 linearChange[2];
+
+        Vector3 angularChange[2];
+
         /*Set contact data
         @param ContactPoint point of contact in world coordinates
         @param contactNormal holds contact normal
@@ -129,7 +133,10 @@ class Contact {
 class ContactResolver {
     real penetrationEpsilon = 0.01;
     real velocityEpsilon = 0.01;
+    unsigned iterations = 1000;
     public:
+
+    ContactResolver(unsigned iterations) : iterations(iterations) {}
     /*Resolves a set of contacts for both penetration and velocity.*/
     void resolveContacts(Contact *contactArray, unsigned numContacts, real duration, unsigned numPosIterations=1000, unsigned numVelocityIterations=1000);
 
@@ -155,6 +162,6 @@ class ContactGenerator {
     contact arrat, where limit is the maximum number of contacts in the array 
     that can be written to. The method returns the number of contacts that have 
     been written*/
-    virtual unsigned addContact(Contact *contact, unsigned limit) const;
+    virtual unsigned addContact(Contact *contact, unsigned limit) const =0;
 };
 }

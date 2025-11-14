@@ -1,8 +1,8 @@
 CMakeFiles/physics_test.dir/src/main.cpp.o: \
  /home/kingade/Desktop/Cyclone/src/main.cpp /usr/include/stdc-predef.h \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/particle.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/core.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/precision.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/particle.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/core.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/precision.hpp \
  /usr/include/c++/13/cmath /usr/include/c++/13/bits/requires_hosted.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h \
@@ -179,13 +179,13 @@ CMakeFiles/physics_test.dir/src/main.cpp.o: \
  /usr/include/c++/13/bits/cxxabi_init_exception.h \
  /usr/include/c++/13/typeinfo /usr/include/c++/13/bits/nested_exception.h \
  /usr/include/c++/13/bits/streambuf.tcc \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/pfgen.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/pfgen.hpp \
  /usr/include/c++/13/vector /usr/include/c++/13/bits/stl_uninitialized.h \
  /usr/include/c++/13/bits/stl_vector.h \
  /usr/include/c++/13/bits/stl_bvector.h \
  /usr/include/c++/13/bits/vector.tcc \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/pworld.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/pcontacts.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/pworld.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/pcontacts.hpp \
  /usr/include/c++/13/memory \
  /usr/include/c++/13/bits/stl_raw_storage_iter.h \
  /usr/include/c++/13/bits/align.h \
@@ -203,7 +203,7 @@ CMakeFiles/physics_test.dir/src/main.cpp.o: \
  /usr/include/c++/13/bits/atomic_lockfree_defines.h \
  /usr/include/c++/13/backward/auto_ptr.h \
  /usr/include/c++/13/pstl/glue_memory_defs.h \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/plinks.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/plinks.hpp \
  /usr/include/c++/13/iostream /usr/include/c++/13/ostream \
  /usr/include/c++/13/ios /usr/include/c++/13/bits/basic_ios.h \
  /usr/include/c++/13/bits/locale_facets.h /usr/include/c++/13/cwctype \

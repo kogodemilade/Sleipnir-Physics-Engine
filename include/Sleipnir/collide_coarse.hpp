@@ -4,6 +4,9 @@
 #include <set>
 
 namespace cyclone{
+// class RigidBody;
+struct BoundingSphere;
+
 /*Stores a potential contect  to check later*/
 struct PotentialContact {
     /*Holds the bodies that might be in contact*/
@@ -16,7 +19,7 @@ template<class BoundingVolumeClass>
 class BVHNode{
     public: 
     /*Holds the child nodes of this node.*/
-    BVHNode* children[2];
+    BVHNode<BoundingVolumeClass>* children[2];
 
     /*Holds a single bounding volume encompassing all the descendants of this node*/
     BoundingVolumeClass volume;
@@ -29,12 +32,16 @@ class BVHNode{
     RigidBody *body;
 
     /*Holds the parent node*/
-    BVHNode *parent;
+    BVHNode<BoundingVolumeClass> *parent;
 
     /*Creates a new node in heirarchy with given params*/
-    BVHNode(BVHNode *parent, const BoundingVolumeClass &volume, RigidBody *body=NULL):
+    BVHNode(BVHNode<BoundingVolumeClass> *parent, const BoundingVolumeClass &volume, RigidBody *body=NULL):
     parent(parent), volume(volume), body(body) {
-        children[0] = children[1] = NULL;
+        children[0] = children[1] = NULL; 
+    }
+    
+    BVHNode(): parent(NULL), body(NULL){
+    children[0] = children[1] = NULL;
     }
 
     /*Checks if this node is at bottom of heirarchy.*/
@@ -58,13 +65,17 @@ class BVHNode{
 
     void recalculateBoundingVolume(bool recurse=true);
 
+    /*Resets the tree keeping only the root*/
+    void reset();
+
     /*Deletes this node, removing it first from the heirarchy, along with its associated rigid body and child nodes*/
     ~BVHNode();
+    
 };
 
 template <class BoundingVolumeClass>
 bool BVHNode<BoundingVolumeClass>::overlaps(const BVHNode<BoundingVolumeClass> *other) const 
-    {return volume->overlaps(other->volume);}
+    {return volume.overlaps(&(other->volume));}
 
 
 template<class BoundingVolumeClass>
@@ -96,7 +107,7 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
         /*Determine which node to descend into. If either is a leaf, then we descend 
         the other. If both are branches, then we use the one with the largest size.*/
         if (other->isLeaf() ||
-        (!isLeaf() && volume->getSize() <= other->volume->getSize())) {
+        (!isLeaf() && volume.getSize() >= other->volume.getSize())) {
             //Recurse into ourself. 
             unsigned count = children[0]->getPotentialContactsWith(other, contacts, limit);
 
@@ -122,11 +133,20 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
 template<class BoundingVolumeClass>
 void BVHNode<BoundingVolumeClass>::insert(
     RigidBody *newBody, const BoundingVolumeClass &newvolume){
+        /*If we are root, then it has no child objects. both child[0] and child[1] are null.*/
+        if(!(children[0])){
+            children[0] = new BVHNode<BoundingVolumeClass>(this, newvolume, newBody);
+            return;
+        }
+        if(!(children[1])){
+            children[1] = new BVHNode<BoundingVolumeClass>(this, newvolume, newBody);
+            return;
+        }
         /*If we are a leaf, then the only option is to spawn two 
         near children and place the new body in one.*/
         if (isLeaf()){
             //Child one is a copy of this
-            children[0] = new BVHNode<BoundingVolumeClass>(this, volume, body);
+            children[0] = new BVHNode<BoundingVolumeClass>(this, volume, body); //Might cause errors. check when debugging
 
             //Child two holds the new body
             children[1] = new BVHNode<BoundingVolumeClass>(this, newvolume, newBody);
@@ -140,11 +160,12 @@ void BVHNode<BoundingVolumeClass>::insert(
 
         /*Otherwise we work out which child gets to keep the inserted body. 
         We give it to whoever would grow the least to incorporate it.*/
+        
         else {
             if (children[0]->volume.getGrowth(newvolume) < children[1]->volume.getGrowth(newvolume)) {
-                children[0]->insert(newBody, newVolume);
+                children[0]->insert(newBody, newvolume);
             } else{
-                children[1]->insert(newBody, newVolume);
+                children[1]->insert(newBody, newvolume);
             }
         }
 }
@@ -152,9 +173,22 @@ void BVHNode<BoundingVolumeClass>::insert(
 
 template<class BoundingVolumeClass>
 void BVHNode<BoundingVolumeClass>::recalculateBoundingVolume(bool recurse){
-    bool recurse;
-    volume = BoundingVolumeClass(children[0], children[1]);
+    volume = BoundingVolumeClass(*children[0], *children[1]);
     if (parent) parent->recalculateBoundingVolume(true);
+}
+
+template<class BoundingVolumeClass>
+void BVHNode<BoundingVolumeClass>::reset(){
+    for (int i=0; i< 2; i++){
+        if(children[i]){
+            children[i]->reset();
+            delete children[i];
+            children[i]=nullptr;
+        }
+    }
+    if(body) body = nullptr;
+    if(parent) parent = nullptr;
+
 }
 
 template<class BoundingVolumeClass>
@@ -167,7 +201,7 @@ BVHNode<BoundingVolumeClass>::~BVHNode<BoundingVolumeClass>(){
         //Writes data to our parent
         parent->volume = sibling->volume;
         parent->body = sibling->body;
-        parent-children[0] = sibling->children[0];
+        parent->children[0] = sibling->children[0];
         parent->children[1] = sibling->children[1];
 
         //Delete the sibling (blank parent and children to avoid processing/deleting them)
@@ -182,7 +216,7 @@ BVHNode<BoundingVolumeClass>::~BVHNode<BoundingVolumeClass>(){
 
         //Delete our children (again we remove their parent data so we don't try to process their si-[/])
         if(children[0]) {
-            children[0]->parent = Null;
+            children[0]->parent = NULL;
             delete children[0];
         }
         if (children[1]){
@@ -202,8 +236,16 @@ struct BoundingSphere {
     /*Creates a new bounding sphere at the given center and radius*/
     BoundingSphere(const Vector3 &center, real radius);
 
+    BoundingSphere(const BVHNode<BoundingSphere> &one, const BVHNode<BoundingSphere> &two){
+        BoundingSphere sphere1 = one.volume;
+        BoundingSphere sphere2 = two.volume;
+        *this = BoundingSphere(sphere1, sphere2);
+    }
+
     /*Creates a bounding sphere to enclose the two given bounding spheres*/
     BoundingSphere(const BoundingSphere &one, const BoundingSphere &two);
+
+    BoundingSphere(): center(0,0,0), radius(0) {}
 
     /*Checks if the bounding sphere overlaps with other given bounding sphere*/
     bool overlaps(const BoundingSphere *other) const;
@@ -216,45 +258,45 @@ struct BoundingSphere {
     };
 
 
-struct Plane {Vector3 position; Vector3 direction;};
+// struct Plane {Vector3 position; Vector3 direction;};
 
-struct BSPNode {
-    Plane plane;
-    BSPNode *front;
-    BSPNode *back;
+// struct BSPNode {
+//     Plane plane;
+//     BSPNode *front;
+//     BSPNode *back;
 
-    BSPNode(){}
-};
+//     BSPNode(){}
+// };
 
-struct QuadTreeNode {
-    Vector3 pos;
-    QuadTreeNode *child[4];
+// struct QuadTreeNode {
+//     Vector3 pos;
+//     QuadTreeNode *child[4];
 
-    unsigned int getChildIndex;
-};
+//     unsigned int getChildIndex;
+// };
 
-struct OctTreeNode {
-    Vector3 pos;
-    OctTreeNode *child[4];
-    unsigned int getChildIndex;
-};
+// struct OctTreeNode {
+//     Vector3 pos;
+//     OctTreeNode *child[4];
+//     unsigned int getChildIndex;
+// };
 
-struct Grid {
-    unsigned int xExtent;
-    unsigned int zExtent;
-    ObjectSet *locations; //An array of size xextent * yextent
+// struct Grid {
+//     unsigned int xExtent;
+//     unsigned int zExtent;
+//     ObjectSet *locations; //An array of size xextent * yextent
 
-    Vector3 Origin;
-    Vector3 oneOverzcellSize;
+//     Vector3 Origin;
+//     Vector3 oneOverzcellSize;
 
-    unsigned int getLocationIndex(const Vector3& object) {
-    Vector3 square = object.componentProduct(oneOverzcellSize);
-    return (unsigned int)(square.x) +xExtent*(unsigned int)(square.z);
-    }
-};
+//     unsigned int getLocationIndex(const Vector3& object) {
+//     Vector3 square = object.componentProduct(oneOverzcellSize);
+//     return (unsigned int)(square.x) +xExtent*(unsigned int)(square.z);
+//     }
+// };
 
-struct ObjectSet{
-    std::pair<real, real> coordinates;
-};
+// struct ObjectSet{
+//     std::pair<real, real> coordinates;
+// };
 }
 //TODO: Finish code from page 253

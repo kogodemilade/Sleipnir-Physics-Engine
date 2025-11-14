@@ -1,6 +1,6 @@
 #include "../include/Sleipnir/body.hpp" //CHANGE TO #include "Sleipnir/body.hpp"
 // #include "../include/cyclone/core.hpp" //CHANGE TO #icnlude "cyclone/core.hpp"
-
+#include <assert.h>
 /**Inline function that creates a transfowm matrix from a pos and orient */
 using namespace cyclone;
 static inline void _calculateTransformMatrix(Matrix4 &transformMatrix, const Vector3 &pos, const Quaternion &orient) {
@@ -123,6 +123,27 @@ real RigidBody::getMass() const{
         return REAL_MAX;
     }
     return (real)1.0/inverseMass;
+}
+
+void RigidBody::setLinearDamping(const real damp) {
+    assert(damp > 0 && damp < 1);
+    linearDamping = damp;
+}
+
+/*Get linear damoing*/
+real RigidBody::getLinearDamping() const{
+    return linearDamping;
+}
+
+/*Set angular damping*/
+void RigidBody::setAngularDamping(const real damp){
+    assert(damp > 0 && damp < 1);
+    angularDamping = damp;
+}
+
+/*Get angular damping*/
+real RigidBody::getAngularDamping() const{
+    return angularDamping;
 }
 
 void RigidBody::setMass(const real mass){
@@ -284,15 +305,18 @@ void RigidBody::integrate(real duration) {
     if (!isAwake) return;
     checkShouldSleep(0.8, duration);
     //Calculate linear acceleration from force inputs.
+    // lastFrameAcceleration = acceleration;
+    acceleration = Vector3(0, 0, 0);
+    // lastFrameAcceleration.addScaledVector(forceAccum, inverseMass);
+    acceleration.addScaledVector(forceAccum, inverseMass);
     lastFrameAcceleration = acceleration;
-    lastFrameAcceleration.addScaledVector(forceAccum, inverseMass);
 
     //Calculate angular acceleration from torque inputs
     angularAcceleration = inverseInertiaTensorWorld.transform(torqueAccum);
 
     //Adjust velocities
     //Update linear velocity from both acceleration and impulse
-    velocity.addScaledVector(lastFrameAcceleration, duration);
+    velocity.addScaledVector(acceleration, duration);
 
     //Update angular velocity from both acc and impulse
     rotation.addScaledVector(angularAcceleration, duration);

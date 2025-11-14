@@ -7,6 +7,10 @@ void Primitive::calculateInternals(){
     transform = body->getTransform() * offset;
 }
 
+void Primitive::bindPrimitive(){
+     body->setPrimitive(this);
+}
+
 bool CollisionData::hasContacts(){
     return contactsLeft > 0;
 }
@@ -23,16 +27,20 @@ void CollisionData::addContacts(unsigned count) {
     contactCount += count;
 
     /*Move the array forward*/
-    contacts+=count;
+    contactArray+=count;
 }
 
-unsigned CollisionDetector::sphereAndSphere(const Sphere &one, const Sphere &two, CollisionData *data){
+unsigned CollisionDetector::sphereAndSphere(Sphere &one, Sphere &two, CollisionData *data){
     //Make sure we have contacts
     if(data->contactsLeft <= 0) return 0;
+
+    one.calculateInternals();
+    two.calculateInternals();
 
     //Cache the sphere positions
     Vector3 positionOne = one.getAxis(3);
     Vector3 positionTwo = two.getAxis(3); 
+
 
     //Find the vector between the objects
     Vector3 midline = positionOne - positionTwo;
@@ -58,23 +66,35 @@ unsigned CollisionDetector::sphereAndSphere(const Sphere &one, const Sphere &two
     contact->restitution = data->restitution;
     contact->friction = data->friction;
 
+        //Point contacts to the head of the arrat
+    if (data->contactsLeft == 1000){
+        data->contacts = data->contactArray;
+    }
+
+    data->addContacts(1);
+
     return 1;
 }
 
-unsigned CollisionDetector::sphereAndHalfSpace(const Sphere &sphere, const Plane &plane, CollisionData *data){
+unsigned CollisionDetector::sphereAndHalfSpace( Sphere &sphere,  Plane &plane, CollisionData *data){
     //Make sure we have contacts
     if (data->contactsLeft <= 0) return 0;
 
-    //caxhe sphere pos
+    sphere.calculateInternals();
+    plane.calculateInternals();
+
+    //cache sphere pos
     Vector3 pos = sphere.getAxis(3);
 
     //find distance from plane
     real ballDistance = plane.normal*pos - sphere.radius - plane.offset;
 
+
+
     if (ballDistance >= 0) return 0;
 
     //Create the contact- normal in plane's direction
-    Contact* contact = data->contacts;
+    Contact* contact = data->contactArray;
     contact->contactNormal = plane.normal;
     contact->penetration = -ballDistance;
     contact->contactPoint = pos - plane.normal * (ballDistance+sphere.radius);
@@ -83,15 +103,22 @@ unsigned CollisionDetector::sphereAndHalfSpace(const Sphere &sphere, const Plane
     contact->restitution = data->restitution;
     contact->friction=data->friction;
 
+    //Point contacts to the head of the arrat
+    if (data->contactsLeft == 1000){
+        data->contacts = data->contactArray;
+    }
+
     data->addContacts(1);
     return 1;
 }
 
-unsigned CollisionDetector::sphereAndTruePlane(const Sphere &sphere, 
-    const Plane &plane, CollisionData *data ){
+unsigned CollisionDetector::sphereAndTruePlane(Sphere &sphere, 
+    Plane &plane, CollisionData *data ){
         //Make sure we have contacts.
         if (data->contactsLeft <= 0) return 0;
 
+        sphere.calculateInternals();
+        plane.calculateInternals();
         //Cache the sphere position.
         Vector3 pos = sphere.getAxis(3);
 
@@ -121,11 +148,18 @@ unsigned CollisionDetector::sphereAndTruePlane(const Sphere &sphere,
         contact->restitution = data->restitution;
         contact->friction = data->friction;
 
+        if (data->contactsLeft == 1000){
+        data->contacts = data->contactArray;
+    }
+
+
         data->addContacts(1);
         return 1;
     }
 
-unsigned CollisionDetector::boxAndHalfSpace(const Box &box, const Plane &plane, CollisionData *data){
+unsigned CollisionDetector::boxAndHalfSpace(Box &box, Plane &plane, CollisionData *data){
+    box.calculateInternals();
+    plane.calculateInternals();
     Vector3 halfSize = box.halfSize;
     Vector3 vertices[8] = {
         Vector3(-halfSize.x, -halfSize.y, -halfSize.z),
@@ -167,12 +201,19 @@ unsigned CollisionDetector::boxAndHalfSpace(const Box &box, const Plane &plane, 
             if (contactsUsed >= (unsigned)data->contactsLeft) return contactsUsed;
         }
     }
+
+        if (data->contactsLeft == 1000){
+        data->contacts = data->contactArray;
+    }
+
     data->addContacts(contactsUsed);
     return contactsUsed;   
 }
 
 
-unsigned CollisionDetector::boxAndSphere(const Box &box, const Sphere &sphere, CollisionData *data){
+unsigned CollisionDetector::boxAndSphere(Box &box, Sphere &sphere, CollisionData *data){
+    box.calculateInternals();
+    sphere.calculateInternals();
     //Transform sphere center in world coordinates to box's local coordinates
     Vector3 center = sphere.getAxis(3);
     Vector3 relCenter = box.getTransform().transformInverse(center);
@@ -276,6 +317,7 @@ bool CollisionDetector::tryAxis(const Box &one, const Box &two, Vector3 axis, co
 //TODO: This may be useless. Review in future
 unsigned CollisionDetector::checkOverlap(const Box& box1, const Box& box2, const Vector3& centerDist, Vector3 axis, unsigned index, real pen, unsigned best){
     if (!tryAxis(box1, box2, axis, centerDist, index, pen, best)) return 0;
+    return 1;
 }
 
 
@@ -338,8 +380,10 @@ Vector3 contactPoint(
     }
 
 
-unsigned CollisionDetector::boxAndBox(const Box &box1, const Box &box2, CollisionData *data){
+unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data){
 
+    box1.calculateInternals();
+    box2.calculateInternals();
     //Find the vector between two centres
     Vector3 centerDist = box2.getAxis(3) - box1.getAxis(3);
 
@@ -438,6 +482,11 @@ unsigned CollisionDetector::boxAndBox(const Box &box1, const Box &box2, Collisio
         /*We can fill the contact*/
         Contact* contact = data->contacts;
         contact->setData(vertex, axis, pen, box1.body, box2.body, data->restitution, data->friction);
+
+        if (data->contactsLeft == 1000){
+        data->contacts = data->contactArray;
+        }
+
         data->addContacts(1);
         return 1;
     }

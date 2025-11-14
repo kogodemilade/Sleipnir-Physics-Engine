@@ -1,9 +1,9 @@
 CMakeFiles/physics_test.dir/src/pfgen.cpp.o: \
  /home/kingade/Desktop/Cyclone/src/pfgen.cpp /usr/include/stdc-predef.h \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/pfgen.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/particle.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/core.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/precision.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/pfgen.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/particle.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/core.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/precision.hpp \
  /usr/include/c++/13/cmath /usr/include/c++/13/bits/requires_hosted.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h \

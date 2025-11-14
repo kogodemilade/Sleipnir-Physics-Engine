@@ -1,8 +1,8 @@
 CMakeFiles/physics_test.dir/src/fgen.cpp.o: \
  /home/kingade/Desktop/Cyclone/src/fgen.cpp /usr/include/stdc-predef.h \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/fgen.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/body.hpp \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/precision.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/fgen.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/body.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/precision.hpp \
  /usr/include/c++/13/cmath /usr/include/c++/13/bits/requires_hosted.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h \
@@ -91,7 +91,7 @@ CMakeFiles/physics_test.dir/src/fgen.cpp.o: \
  /usr/include/c++/13/tr1/poly_hermite.tcc \
  /usr/include/c++/13/tr1/poly_laguerre.tcc \
  /usr/include/c++/13/tr1/riemann_zeta.tcc \
- /home/kingade/Desktop/Cyclone/src/../include/cyclone/core.hpp \
+ /home/kingade/Desktop/Cyclone/src/../include/Sleipnir/core.hpp \
  /usr/include/c++/13/initializer_list /usr/include/c++/13/algorithm \
  /usr/include/c++/13/bits/stl_algo.h \
  /usr/include/c++/13/bits/algorithmfwd.h \

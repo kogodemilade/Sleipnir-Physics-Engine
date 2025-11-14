@@ -2,20 +2,29 @@
 
 #include "precision.hpp"
 #include "core.hpp"
+// #include "collide_fine.hpp"
 // #include ""
 
 /*A rigid body is the bsic simulation object in the physics core.*/
 namespace cyclone{
+class Primitive;
 class RigidBody {
     protected:
         /*Holds thhe inverse mass of the rigid body. More useful than mass due to numerical stability*/
         real inverseMass;
 
-        /*Holds the linear position of the rigid body in world space*/
-        Vector3 position;
+        /*Holds a real type for the size of the body. Used to calculate the bounding volume. Should be slightly bigger than the radius of spherical objects, 
+        and slightly bigger or equal to the largest dimension of Paralelipipdes*/
+        real size;
 
-        /*Holds the angular orientation of the rigid body in world space*/
-        Quaternion orientation;
+        /*Holds the linear position of the rigid body in world space. Defaults to (0, 0, 0)*/
+        Vector3 position = Vector3(0, 0, 0);
+
+        /*Holds the angular orientation of the rigid body in world space. Defaults to (1,0,0,0)*/
+        Quaternion orientation = Quaternion(1, 0, 0, 0);
+
+        /*The type of primitive associated with the body*/
+        Primitive *primitive;
 
         /*Holds the angular velocity, or rotation, of the rigid body in world space.*/
         Vector3 rotation;
@@ -31,12 +40,12 @@ class RigidBody {
 
         /*Holds the amount of damping applied to the linear motion. 
         Damping is required to remove energy added through numerical 
-        instability in the integrator.*/
-        real linearDamping;
+        instability in the integrator. Defaults to 0.95*/
+        real linearDamping = 0.95;
 
-        /*Holds the amount of damping applied to the angular motion.
+        /*Holds the amount of damping applied to the angular motion. Defaults to 0.95
         @see linearDamping*/
-        real angularDamping;
+        real angularDamping = 0.95;
 
         /*Force accumulator*/
         Vector3 forceAccum;
@@ -75,7 +84,7 @@ class RigidBody {
         User-controlled bodies, for example, should be always awake.*/
         bool canSleep;
 
-        /*Threshold to dheck when deciding whether a body is asleep or not*/
+        /*Threshold to dheck when deciding whether a body is asleep or not. Defaults to 0.2*/
         real sleepEpsilon=0.2;
 
     public:
@@ -119,6 +128,11 @@ class RigidBody {
         /*chexk whether body has finite mass*/
         bool hasFiniteMass();
 
+        void setSize(real size_){
+            size=size_;
+        }
+
+        real getSize() const { return size;}
         /*Adds given torque at point in world coordinates
         @param torque The torque to apply*/
         void addTorque(const Vector3 &torque);
@@ -132,8 +146,26 @@ class RigidBody {
         /*Get mass of object*/
         real getMass() const;
 
+        /*Get primitive associated with body*/
+        Primitive* getPrimitive() const{ return primitive;}
+
+        /*Set primitive associated with body. Implicitly called when we add a new collision primitive to the body*/
+        void setPrimitive(Primitive *prim) {primitive = prim;}
+
         /*Set inverse mass of object by its mass*/
         void setMass(const real mass);
+
+        /*Set linear damping*/
+        void setLinearDamping(const real damp);
+
+        /*Get linear damoing*/
+        real getLinearDamping() const;
+
+        /*Set angular damping*/
+        void setAngularDamping(const real damp);
+
+        /*Get angular damping*/
+        real getAngularDamping() const;
 
         /*Get position of body*/
         Vector3 getPosition() const;
@@ -218,7 +250,7 @@ class RigidBody {
         real getSleepEpsilon() const;
 
         /*Get the previous acceleration*/
-        Vector3 RigidBody::getPrevAcceleration();
+        Vector3 getPrevAcceleration();
 
         /*set wake states bodies*/
         void setAwake(const bool awake);
@@ -233,7 +265,6 @@ class RigidBody {
         void setCanSleep(bool sleepable);
 
         /*check whether a body should be put to sleep and sleep if so*/
-        void checkShouldSleep(real bias=0.8f,  real duration);
-
+        void checkShouldSleep(real bias=0.8f,  real duration=0.01);
 };
 }

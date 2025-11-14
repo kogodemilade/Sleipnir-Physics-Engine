@@ -1,18 +1,24 @@
 #pragma once
-#include "body.hpp"
+// #include "body.hpp"
 #include "contacts.hpp"
 #include "core.hpp"
 /*A helper structure that contains information for 
 the detector to use in building its contact data*/
 
 namespace cyclone{
+class RigidBody;
+enum PrimitiveType{
+    PRIMITIVESPHERE, PRIMITIVEBOX, PRIMITIVEPLANE
+};
+
 struct CollisionData {
+
+
+    /*Holds the contact array to write into*/
+    Contact *contactArray;
 
     /*Holds the first contact in the array. Makes it easier to track 
     and update contact array via pointer arithmetic*/
-    Contact *contactArray;
-
-    /*Holds the contact array to write into*/
     Contact *contacts;
 
     /*Holds the maximum number of contacts the array can take*/
@@ -40,7 +46,6 @@ struct CollisionData {
 
 };
 
-
 class Primitive {
     friend CollisionData;
 
@@ -54,11 +59,17 @@ class Primitive {
         /*Calculates internals for this primitive*/
             void calculateInternals();
 
-        /*This is a convenienve function to allow access to the axis vectors in the transform for this primitive*/
-        Vector3 getAxis(unsigned index) const {
-            return transform.getAxisVector(index);
-        }
+        /*This is a convenience function to allow access to the axis vectors in the transform for this primitive*/
+            Vector3 getAxis(unsigned index) const {
+                return transform.getAxisVector(index);
+            }
 
+            virtual unsigned getType() const = 0;
+
+        /*Bind a body to its primitive */
+            void bindPrimitive();
+
+            virtual ~Primitive() = default;
         /*Returns the resulant transform of the primitive,
         calculated from the combined offset of the primitive 
         and the transform of the rigid body to which it is attached*/
@@ -80,9 +91,11 @@ class Primitive {
 
 
 class Sphere : public Primitive {
-    public:
+    private:
         Vector3 pos;
+    public:
         real radius;
+        unsigned getType() const override {return PRIMITIVESPHERE;}
 
 };
 
@@ -92,6 +105,7 @@ class Plane :public Primitive {
 
         //Distance of plane from normal
         real offset;
+        unsigned getType() const override {return PRIMITIVEPLANE;}
 };
 
 class Box: public Primitive {
@@ -99,31 +113,47 @@ class Box: public Primitive {
     /*Half of the size of the box in each axis. 
     The size in any axis would be 2 times the corresponding axis*/
         Vector3 halfSize;
+        unsigned getType() const override {return PRIMITIVEBOX;}
+};
+
+class HalfPlane :public Primitive {
+    public:
+        Vector3 normal;
+
+        //Distance of plane from normal
+        real offset;
+
+        //How far the plane extends
+        real halfX;
+        real halfY;
+        unsigned getType() const override {return PRIMITIVEPLANE;}
 };
 
 
 class CollisionDetector {
+    public:
     /*Generate contact between two spheres*/
-    unsigned sphereAndSphere(const Sphere &one, const Sphere &two,
+    unsigned sphereAndSphere(Sphere &one, Sphere &two,
          CollisionData *data);
 
     /*Checks for contact between a sphere and half space.*/
-    unsigned sphereAndHalfSpace(const Sphere &sphere, 
-        const Plane &plane, CollisionData *data);
+    unsigned sphereAndHalfSpace( Sphere &sphere, 
+         Plane &plane, CollisionData *data);
 
     /*Checks for contact between a sphere and a plane.*/
-    unsigned sphereAndTruePlane(const Sphere &sphere, 
-        const Plane &plane, CollisionData *data );
+    unsigned sphereAndTruePlane(Sphere &sphere, 
+        Plane &plane, CollisionData *data );
 
     /*Checks for contact between a box and a half space.*/
-    unsigned boxAndHalfSpace(const Box &box, const Plane &plane, CollisionData *data);
+    unsigned boxAndHalfSpace( Box &box,  Plane &plane, CollisionData *data);
 
     /*Checks for contact between a box and a sphere.*/
-    unsigned boxAndSphere(const Box &box, const Sphere &sphere, CollisionData *data);
+    unsigned boxAndSphere( Box &box,  Sphere &sphere, CollisionData *data);
 
     /*Checks for contacts between two boxes.*/
-    unsigned boxAndBox(const Box &box1, const Box &box2, CollisionData *data);
-
+    unsigned boxAndBox( Box &box1,  Box &box2, CollisionData *data);
+    
+    private:
     /*(Box-to-Box specific) Return how much of the box lies on given axis.*/
     real transformToAxis(const Box &box, const Vector3 &axis);
 

@@ -55,7 +55,7 @@ class Vector3 {
     }
 
     /*Returns a copy of this vector scaled to the given value*/
-    Vector3 operator*(const real value) const{
+    Vector3 operator*(real value) const{
         return Vector3(x*value, y*value, z*value);
     }
 
@@ -158,7 +158,7 @@ class Vector3 {
     /**Calculates the cross product of this vector and a given vector and returns the result */
     Vector3 operator %(const Vector3 &vector) const{
         return Vector3(y*vector.z - z*vector.y, 
-                       x*vector.z - z*vector.x,
+                       z*vector.x - x*vector.z,
                        x*vector.y - y*vector.x);
     }
 
@@ -196,7 +196,7 @@ class Vector3 {
     /*Creates a skew-symetric matrix based on the vector. 
     The skew-symmetrix matrix is the equivalent of the vector product.
     if a,b are vectors, axb = A_s.b, where A_s is the skew symmetric matrix of a*/
-    Matrix3 Vector3::skewSymmetricMatrix();
+    Matrix3 skewSymmetricMatrix();
 
     //zero all components of vector
     void clear(){
@@ -232,10 +232,10 @@ class Vector3 {
     Vector3 operator *(const Vector3 &vec) const;
 
     /*Returns the result of multiplying each member by a scalar*/
-    Matrix3 operator *(int num) const;
+    Matrix3 operator *(real num) const;
 
     /*Updates matrix by multiplying each member by num*/
-    void operator*=(int num);
+    void operator*=(real num);
 
     /*Returns the addition of two matrices*/
     Matrix3 operator +(const Matrix3 &other) const;
