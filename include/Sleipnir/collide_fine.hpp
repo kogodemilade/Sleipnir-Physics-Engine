@@ -15,11 +15,13 @@ struct CollisionData {
 
 
     /*Holds the contact array to write into*/
-    Contact *contactArray;
+    // Contact *contactArray;
 
-    /*Holds the first contact in the array. Makes it easier to track 
-    and update contact array via pointer arithmetic*/
-    Contact *contacts;
+    // /*Holds the first contact in the array. Makes it easier to track 
+    // and update contact array via pointer arithmetic*/
+    // Contact *contacts;
+
+    std::vector<Contact> contacts;
 
     /*Holds the maximum number of contacts the array can take*/
     unsigned contactsLeft;

@@ -1,8 +1,10 @@
 #include "../include/Sleipnir/contacts.hpp"
+#include <memory>
+#include <vector>
 
 using namespace cyclone;
 
-void ContactResolver::resolveContacts(Contact *contacts, unsigned numContacts, real duration, unsigned numPosIterations, unsigned numVelocityIterations){
+void ContactResolver::resolveContacts(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations, unsigned numVelocityIterations){
     /*Make sure we have something to do.*/
     if (numContacts == 0) return;
 
@@ -16,28 +18,33 @@ void ContactResolver::resolveContacts(Contact *contacts, unsigned numContacts, r
     adjustVelocities(contacts, numContacts, duration, numVelocityIterations);
 }
 
-void ContactResolver::prepareContacts(Contact *contacts, unsigned numContacts, real duration){
+void ContactResolver::prepareContacts(std::vector<Contact> &contacts, unsigned numContacts, real duration){
     /*Generate contact velocity, relative positions for torque 
     and contactToWorld .*/
-    Contact *lastContact = contacts + numContacts;
-    for(Contact *contact = contacts; contact<lastContact; contact++){
+    for (auto &contact : contacts){
         /*Calculate the internal contact data (inertia, basis, etc)*/
-        contact->calculateInternals(duration);
+        contact.calculateInternals(duration);
     }
 }
 
-void ContactResolver::adjustPositions(Contact *contacts, unsigned numContacts, real duration, unsigned numPosIterations){
-    Contact* lastContact = contacts + numContacts;
+void ContactResolver::adjustPositions(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations){
     unsigned positionIterations = numPosIterations;
     for (unsigned j=0; j < positionIterations; j++){
         Contact* worstContact = nullptr;
         real worstPenetration = penetrationEpsilon;
-        for(Contact* contact=contacts; contact<lastContact; contact++){
-            if (contact->penetration > worstPenetration){
-                worstContact = contact;
-                worstPenetration = contact->penetration;
+        for (auto& contact: contacts){
+            if(contact.penetration > worstPenetration){
+                worstContact = &contact;
+                worstPenetration = contact.penetration;
             }
         }
+        // for(Contact* contact=contacts; contact<lastContact; contact++){
+        //     if (contact->penetration > worstPenetration){
+        //         worstContact = contact;
+        //         worstPenetration = contact->penetration;
+        //     }
+        // }
+
         if (worstContact) {
         worstContact->matchAwakeState();
         worstContact->fixInterpenetration();
@@ -46,7 +53,7 @@ void ContactResolver::adjustPositions(Contact *contacts, unsigned numContacts, r
         for(unsigned i=0; i<numContacts;i++){
             Vector3 cp; //CENTER POINT
             // if(&contacts[i] == worstContact) continue;
-            if(contacts[i].body[0]){
+            if(contacts[i].body[0]){ //fix code here. we've moved from raw pointers to vectors.
                 if(contacts[i].body[0]==worstContact->body[0]){
                     /*Linear change due to angular velocity*/
                     cp = worstContact->angularChange[0].vectorProduct(contacts[i].relativeContactPosition[0]);
@@ -80,17 +87,19 @@ void ContactResolver::adjustPositions(Contact *contacts, unsigned numContacts, r
 }
 }
 
-void ContactResolver::adjustVelocities(Contact *contacts, unsigned numContacts, real duration, unsigned numVelIterations){
+void ContactResolver::adjustVelocities(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numVelIterations){
     unsigned VelocityIterations = numVelIterations;
     for (unsigned j = 0; j < numVelIterations; j++){
         Contact *worstContact = nullptr;
         real fastestClosingVelocity = velocityEpsilon;
-        for (unsigned i=0; i<numContacts; i++){
-            if (contacts[i].desiredDeltaVelocity > fastestClosingVelocity){
-                worstContact = &contacts[i];
-                fastestClosingVelocity = contacts[i].desiredDeltaVelocity;
+
+        for (auto& contact: contacts){
+            if(contact.desiredDeltaVelocity > fastestClosingVelocity){
+                worstContact = &contact;
+                fastestClosingVelocity = contact.desiredDeltaVelocity;
             }
         }
+
         if (!worstContact) break;
         worstContact->matchAwakeState();
         worstContact->applyImpulse();
@@ -98,7 +107,7 @@ void ContactResolver::adjustVelocities(Contact *contacts, unsigned numContacts, 
         /*This may have changed the closing velocities of other bodies*/
         for(unsigned i=0; i<numContacts;i++){
             Vector3 cp;
-            if(contacts[i].body[0]){
+            if(contacts[i].body[0]){ //fix code here. we've moved from raw pointers to vectors.
                 if(contacts[i].body[0]==worstContact->body[0]){
                     /*Linear change due to angular velocity*/
                     cp = worstContact->rotationChange[0].vectorProduct(contacts[i].relativeContactPosition[0]);

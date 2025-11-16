@@ -16,9 +16,9 @@ int main() {
     cyclone::RigidBody b;
     b.setMass(5.0f);
     b.setVelocity(cyclone::Vector3(0, 0, 0));
-    b.setPosition(cyclone::Vector3(200, 10, 0)); 
+    b.setPosition(cyclone::Vector3(210, 10, 0)); 
     b.setLinearDamping(0.99);
-    b.setSize(0.5);
+    b.setSize(5);
     cyclone::real inertia = 0.4 * b.getMass() * b.getSize() * b.getSize();
     cyclone::Vector3 inertiaX(1.0, 0.0, 0.0);
     cyclone::Vector3 inertiaY(0.0, 1.0, 0.0);
@@ -40,6 +40,28 @@ int main() {
     sphere.bindPrimitive();
     sphere.calculateInternals();
 
+
+    cyclone::RigidBody c;
+    c.setMass(6.0f);
+    c.setVelocity(cyclone::Vector3(0, 0, 0));
+    c.setPosition(cyclone::Vector3(190, 10, 0)); 
+    c.setLinearDamping(0.99);
+    c.setSize(6);
+    cyclone::real inertia2 = 0.4 * c.getMass() * c.getSize() * c.getSize();
+
+    cyclone::Matrix3 inertiaMat2 = IdentityMatrix * inertia2;
+
+    c.setInertiaTensor(inertiaMat2);
+    c.calculateDerivedData();
+
+    cyclone::Sphere sphere2;
+    sphere2.body = &c;    
+    sphere2.radius = (cyclone::real)6.0;
+    cyclone::Matrix4 offset2;
+    offset2.setOrientAndPos(cyclone::Quaternion(1, 0, 0, 0), cyclone::Vector3(0, 0, 0));
+    sphere2.offset = offset2;
+    sphere2.bindPrimitive();
+    sphere2.calculateInternals();
 
     //Create ground
     cyclone::RigidBody ground;
@@ -67,8 +89,11 @@ int main() {
 
     // Add to world
     world.addBodies(&b);
-    world.addBodies(&ground);
+    world.addBodies(&c);
+    world.addBodies(&ground, 1);
     world.registry.add(&b, &gravity);
+    world.registry.add(&c, &gravity);
+
 
     float duration = 0.01;
     int i = 0;
@@ -78,12 +103,21 @@ int main() {
 
         if (i % 1 == 0) {
             std::cout << "iteration: " << i*duration << "secs\n";
+            std::cout<<"body1\n";
             std::cout << "Position: x=" << b.getPosition().x
                       << " y=" << b.getPosition().y << "\n";
             std::cout << "Velocity: x=" << b.getVelocity().x
                       << " y=" << b.getVelocity().y << "\n";
             std::cout << "Acceleration: x=" << b.getAcceleration().x
                       << " y=" << b.getAcceleration().y << "\n\n";
+
+            std::cout<<"body2\n";
+            std::cout << "Position: x=" << c.getPosition().x
+                      << " y=" << c.getPosition().y << "\n";
+            std::cout << "Velocity: x=" << c.getVelocity().x
+                      << " y=" << c.getVelocity().y << "\n";
+            std::cout << "Acceleration: x=" << c.getAcceleration().x
+                      << " y=" << c.getAcceleration().y << "\n\n\n";
             
             // for (auto data: anchor.getInvInertiaTensorWorld().data){
             // std::cout << "Inverse Inertia tensor world "<<data<<"\n";}
@@ -91,7 +125,7 @@ int main() {
         }
 
         i++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     return 0;
 }

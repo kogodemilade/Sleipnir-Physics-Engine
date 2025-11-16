@@ -1,11 +1,15 @@
 #pragma once
 #include "body.hpp"
 #include "core.hpp"
+#include <vector>
+// #include "collide_fine.hpp"
 #include <set>
 
 namespace cyclone{
 // class RigidBody;
 struct BoundingSphere;
+
+// enum PrimitiveType;
 
 /*Stores a potential contect  to check later*/
 struct PotentialContact {
@@ -50,18 +54,18 @@ class BVHNode{
     /*Checks the potential contacts from this node downward in the heirarchy, 
     writing them to the given array (up to the given limit). Returns the number 
     of potential contacts it found.*/
-    unsigned getPotentialContacts(PotentialContact *contacts, unsigned limit) const;
+    unsigned getPotentialContacts(std::vector<PotentialContact*> contacts, unsigned limit) const;
 
     bool overlaps(const BVHNode<BoundingVolumeClass> *other) const;
 
     unsigned getPotentialContactsWith(const BVHNode<BoundingVolumeClass> *other,
-    PotentialContact *contacts,
+    std::vector<PotentialContact*> contacts,
     unsigned limit) const;
 
     /*Inserts the given rigid body, with the given bounding volume, 
     into the heirarchy. This may involve the creation of further bounding 
     volume nodes.*/
-    void insert(RigidBody *body, const BoundingVolumeClass &volume);
+    void insert(RigidBody *body, const BoundingVolumeClass &volume, bool root=0);
 
     void recalculateBoundingVolume(bool recurse=true);
 
@@ -80,7 +84,7 @@ bool BVHNode<BoundingVolumeClass>::overlaps(const BVHNode<BoundingVolumeClass> *
 
 template<class BoundingVolumeClass>
 unsigned BVHNode<BoundingVolumeClass>::getPotentialContacts(
-    PotentialContact * contacts, unsigned limit) const {
+    std::vector<PotentialContact*> contacts, unsigned limit) const {
         //Early out if we don't have the room for contacts, or if we're a leaf node.
         if (isLeaf() || limit==0) return 0;
 
@@ -92,15 +96,17 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContacts(
 template<class BoundingVolumeClass>
 unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
     const BVHNode<BoundingVolumeClass> *other,
-    PotentialContact *contacts,
+    std::vector<PotentialContact*> contacts,
     unsigned limit) const {
         //Early-out if we don't overlap or if we have no room to report contacts.
         if(!overlaps(other) || limit ==0) return 0;
 
         //If we're both at leaf nodes, then we have a potential contact.
         if (isLeaf() && other->isLeaf()) {
-            contacts->body[0] = body;
-            contacts->body[1] = other->body;
+            PotentialContact *pc;
+            pc->body[0] = body;
+            pc->body[1] = other->body;
+            contacts.push_back(pc);
             return 1;
         }
 
@@ -113,7 +119,7 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
 
             //Check whether we have enough slots to do the other side
             if (limit > count) {
-                return count + children[1]->getPotentialContactsWith(other, contacts+count, limit-count);
+                return count + children[1]->getPotentialContactsWith(other, contacts, limit-count);
             } else {
                 return count;
             }
@@ -124,7 +130,7 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
 
             //Check whether we have enough slots to do the other side too.
             if (limit>count) {
-                return count + getPotentialContactsWith(other->children[1], contacts+count, limit-count);
+                return count + getPotentialContactsWith(other->children[1], contacts, limit-count);
             } else {return count;}
                 }
 }
@@ -132,8 +138,13 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
 
 template<class BoundingVolumeClass>
 void BVHNode<BoundingVolumeClass>::insert(
-    RigidBody *newBody, const BoundingVolumeClass &newvolume){
+    RigidBody *newBody, const BoundingVolumeClass &newvolume, bool root){
+        /*Don't add if body is a plane*/
+        // if(newBody->getPrimitive()->getType() == PrimitiveType::PRIMITIVEPLANE) return;
+
+
         /*If we are root, then it has no child objects. both child[0] and child[1] are null.*/
+        if(root){
         if(!(children[0])){
             children[0] = new BVHNode<BoundingVolumeClass>(this, newvolume, newBody);
             return;
@@ -141,7 +152,7 @@ void BVHNode<BoundingVolumeClass>::insert(
         if(!(children[1])){
             children[1] = new BVHNode<BoundingVolumeClass>(this, newvolume, newBody);
             return;
-        }
+        }}
         /*If we are a leaf, then the only option is to spawn two 
         near children and place the new body in one.*/
         if (isLeaf()){
@@ -152,7 +163,7 @@ void BVHNode<BoundingVolumeClass>::insert(
             children[1] = new BVHNode<BoundingVolumeClass>(this, newvolume, newBody);
             
             //And now loosen the body
-            this->body = NULL;
+            this->body = nullptr;
 
             //Recalculate bounding volume
             recalculateBoundingVolume();
@@ -182,12 +193,13 @@ void BVHNode<BoundingVolumeClass>::reset(){
     for (int i=0; i< 2; i++){
         if(children[i]){
             children[i]->reset();
+            children[i]->parent = nullptr;
             delete children[i];
             children[i]=nullptr;
         }
     }
     if(body) body = nullptr;
-    if(parent) parent = nullptr;
+    // if(parent) parent = nullptr;
 
 }
 

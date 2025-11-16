@@ -1,5 +1,6 @@
 #include "../include/Sleipnir/collide_fine.hpp"
 #include <assert.h>
+#include <memory>
 
 using namespace cyclone;
 
@@ -18,16 +19,13 @@ bool CollisionData::hasContacts(){
 void CollisionData::reset(unsigned maxContacts){
     contactsLeft = maxContacts;
     contactCount = 0;
-    contacts = contactArray;
+    contacts.clear();
 }
 
 void CollisionData::addContacts(unsigned count) {
     //Reduce number of contacts remaining, add number used
     contactsLeft -= count;
     contactCount += count;
-
-    /*Move the array forward*/
-    contactArray+=count;
 }
 
 unsigned CollisionDetector::sphereAndSphere(Sphere &one, Sphere &two, CollisionData *data){
@@ -55,21 +53,20 @@ unsigned CollisionDetector::sphereAndSphere(Sphere &one, Sphere &two, CollisionD
     Vector3 normal = midline;
     normal.normalize();
 
-    Contact* contact = data->contacts;
-    contact->contactNormal = normal;
-    contact->contactPoint = positionOne + midline*(real)0.5;
-    contact->penetration = (one.radius+two.radius - size);
+    Contact contact;
+    contact.contactNormal = normal;
+    contact.contactPoint = positionOne + midline*(real)0.5;
+    contact.penetration = (one.radius+two.radius - size);
 
     //Write the apprpriate data
-    contact->body[0] = one.body;
-    contact->body[1] = two.body;
-    contact->restitution = data->restitution;
-    contact->friction = data->friction;
+    contact.body[0] = one.body;
+    contact.body[1] = two.body;
+    contact.restitution = data->restitution;
+    contact.friction = data->friction;
 
-        //Point contacts to the head of the arrat
-    if (data->contactsLeft == 1000){
-        data->contacts = data->contactArray;
-    }
+    data->contacts.push_back(std::move(contact));
+        //Point contacts to the head of the array
+
 
     data->addContacts(1);
 
@@ -94,19 +91,16 @@ unsigned CollisionDetector::sphereAndHalfSpace( Sphere &sphere,  Plane &plane, C
     if (ballDistance >= 0) return 0;
 
     //Create the contact- normal in plane's direction
-    Contact* contact = data->contactArray;
-    contact->contactNormal = plane.normal;
-    contact->penetration = -ballDistance;
-    contact->contactPoint = pos - plane.normal * (ballDistance+sphere.radius);
-    contact->body[0]=sphere.body;
-    contact->body[1]=NULL;
-    contact->restitution = data->restitution;
-    contact->friction=data->friction;
+    Contact contact;
+    contact.contactNormal = plane.normal;
+    contact.penetration = -ballDistance;
+    contact.contactPoint = pos - plane.normal * (ballDistance+sphere.radius);
+    contact.body[0]=sphere.body;
+    contact.body[1]=NULL;
+    contact.restitution = data->restitution;
+    contact.friction=data->friction;
 
-    //Point contacts to the head of the arrat
-    if (data->contactsLeft == 1000){
-        data->contacts = data->contactArray;
-    }
+    data->contacts.push_back(std::move(contact));
 
     data->addContacts(1);
     return 1;
@@ -138,19 +132,18 @@ unsigned CollisionDetector::sphereAndTruePlane(Sphere &sphere,
         penetration += sphere.radius;
 
         //Create the contact - it has a normal in the plane direction
-        Contact *contact = data->contacts;
-        contact->contactNormal = normal;
-        contact->penetration = penetration;
-        contact->contactPoint = pos - plane.normal *centerDistance;
 
-        contact->body[0] = sphere.body;
-        contact->body[1] = NULL;
-        contact->restitution = data->restitution;
-        contact->friction = data->friction;
+        Contact contact;
+        contact.contactNormal = normal;
+        contact.penetration = penetration;
+        contact.contactPoint = pos - plane.normal *centerDistance;
 
-        if (data->contactsLeft == 1000){
-        data->contacts = data->contactArray;
-    }
+        contact.body[0] = sphere.body;
+        contact.body[1] = NULL;
+        contact.restitution = data->restitution;
+        contact.friction = data->friction;
+
+        data->contacts.push_back(std::move(contact));
 
 
         data->addContacts(1);
@@ -173,7 +166,7 @@ unsigned CollisionDetector::boxAndHalfSpace(Box &box, Plane &plane, CollisionDat
     };
 
     unsigned contactsUsed = 0;
-    Contact *contact = data->contacts;
+    Contact contact;
     for(auto vertex: vertices){
         vertex = box.offset*vertex;
         vertex = box.getTransform().transform(vertex);
@@ -193,18 +186,15 @@ unsigned CollisionDetector::boxAndHalfSpace(Box &box, Plane &plane, CollisionDat
             contactPoint += vertex;
             real penetration = plane.offset - vertexDist;
 
-            contact->setData(contactPoint, plane.normal, penetration, box.body, NULL, data->restitution, data->friction);
+            contact.setData(contactPoint, plane.normal, penetration, box.body, NULL, data->restitution, data->friction);
 
-            contact++;
+            data->contacts.push_back(std::move(contact));
             contactsUsed++;
 
             if (contactsUsed >= (unsigned)data->contactsLeft) return contactsUsed;
         }
     }
 
-        if (data->contactsLeft == 1000){
-        data->contacts = data->contactArray;
-    }
 
     data->addContacts(contactsUsed);
     return contactsUsed;   
@@ -250,9 +240,11 @@ unsigned CollisionDetector::boxAndSphere(Box &box, Sphere &sphere, CollisionData
     contactNormal.normalize();
     real penetration = sphere.radius - real_sqrt(dist);
 
-    Contact *contact = data->contacts;
-    contact->setData(closestPtWorld, contactNormal, penetration, 
+    Contact contact;
+    contact.setData(closestPtWorld, contactNormal, penetration, 
         box.body, sphere.body, data->restitution, data->friction);
+
+    data->contacts.push_back(std::move(contact));
     data->addContacts(1);
     return 1;
 }
@@ -322,7 +314,7 @@ unsigned CollisionDetector::checkOverlap(const Box& box1, const Box& box2, const
 
 
 void CollisionDetector::fillPointFaceBox(const Box &box1, const Box &box2, const Vector3 &centerDist, CollisionData *data, unsigned best, real pen){
-    Contact *contact = data->contacts;
+    Contact contact;
 
     /*We know which axis the collision is on (i.e best),
     but we need to work out which of the two faces on this axis*/
@@ -338,7 +330,8 @@ void CollisionDetector::fillPointFaceBox(const Box &box1, const Box &box2, const
     if (box2.getAxis(2) * normal < 0) vertex.z = -vertex.z;
 
     //Create the contact data
-    contact->setData(box2.getTransform() * vertex, normal, pen, box1.body, box2.body, data->restitution, data->friction);
+    contact.setData(box2.getTransform() * vertex, normal, pen, box1.body, box2.body, data->restitution, data->friction);
+    data->contacts.push_back(std::move(contact));
 }
 
 
@@ -480,12 +473,9 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
 
 
         /*We can fill the contact*/
-        Contact* contact = data->contacts;
-        contact->setData(vertex, axis, pen, box1.body, box2.body, data->restitution, data->friction);
-
-        if (data->contactsLeft == 1000){
-        data->contacts = data->contactArray;
-        }
+        Contact contact;
+        contact.setData(vertex, axis, pen, box1.body, box2.body, data->restitution, data->friction);
+        data->contacts.push_back(std::move(contact));
 
         data->addContacts(1);
         return 1;
@@ -520,8 +510,10 @@ unsigned CollisionDetector::boxAndPoint(const Box &box, const Vector3 &point, Co
     }
 
     //Compile the contact
-    Contact* contact = data->contacts;
-    contact->setData(point, normal, min_depth, box.body, NULL, data->restitution, data->friction);
+    Contact contact;
+    contact.setData(point, normal, min_depth, box.body, NULL, data->restitution, data->friction);
+    data->contacts.push_back(std::move(contact));
+    data->addContacts(1);
     /*Note that we don't know what rigid body the point belongs to, so we just use NULL*/
     return 1;
 }

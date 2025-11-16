@@ -47,12 +47,16 @@ class World {
     CollisionData *collision_data = new CollisionData();
 
     //Holds list of contacts
-    ContactPointer contactStorage;
-    Contact* contacts;
+    // ContactPointer contactStorage;
+    std::vector<Contact> contacts;
 
     //Potential contacts
-    PotentialContact *potentialContacts = new PotentialContact[maxContacts];
+    // PotentialContact *potentialContacts = new PotentialContact[maxContacts];
 
+    // PotentialContact *basePotContact = new PotentialContact;
+
+    std::vector<PotentialContact*> potentialContacts;
+    
     //Root of the bvh Tree for Coarse Contact resolution
     BVHNode<BoundingSphere> root;
     // BVHNode<BoundingSphere> root = BoundingSphere(Vector3(0, 0, 0), 1000); //Change, this is for debugging only. Especially  the radius
@@ -61,12 +65,15 @@ class World {
 
     unsigned iterations;
 
+    //Plane
+    RigidBody* plane;
+
 
     /*Calls each of the registered contact generators to report their contacts. Returns the number of generated contacts*/
     unsigned generateContacts();
 
     /*add particles to world*/
-    void addBodies(RigidBody* body);
+    void addBodies(RigidBody* body, bool plane=0);
 
     /*add contact generators to the world*/
     void addContactGenerator(ContactGenerator* contactGen);

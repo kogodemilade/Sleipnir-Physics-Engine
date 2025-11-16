@@ -2,7 +2,8 @@
 #include "core.hpp"
 #include "body.hpp"
 #include "collide_coarse.hpp"
-
+#include <vector>
+#include <memory>
 /*A contact represents two bodies in contact. 
 Resolving a contact removes their interpenetration.  
 Contacts can be used to rep positional joints, by making 
@@ -138,20 +139,20 @@ class ContactResolver {
 
     ContactResolver(unsigned iterations) : iterations(iterations) {}
     /*Resolves a set of contacts for both penetration and velocity.*/
-    void resolveContacts(Contact *contactArray, unsigned numContacts, real duration, unsigned numPosIterations=1000, unsigned numVelocityIterations=1000);
+    void resolveContacts(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations=1000, unsigned numVelocityIterations=1000);
 
     protected:
     /*Sets up contacts ready for processing by calculating its internal data*/
-    void prepareContacts(Contact *contactArray, unsigned numContacts, real duration);
+    void prepareContacts(std::vector<Contact> &contacts, unsigned numContacts, real duration);
 
     /*Fixes interpenetration*/
-    void adjustPositions(Contact *contacts, unsigned numContacts, real duration, unsigned numPosIterations);
+    void adjustPositions(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations);
 
     /*Adjusts the velocities of colliding objects*/
-    void adjustVelocities(Contact *contacts, unsigned numContacts, real duration, unsigned numVelocityPositions);
+    void adjustVelocities(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numVelocityPositions);
 
     /*Updates penetration values after a contact has been resolved*/
-    void updatePenetration(Contact *contacts, unsigned numContacts, real duration, unsigned numVelocityPositions);
+    // void updatePenetration(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numVelocityPositions);
 };
 
 /*This is the basic polymorphic interface for contact generators applying to rigid bodies*/
