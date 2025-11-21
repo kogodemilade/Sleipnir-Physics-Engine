@@ -1,6 +1,8 @@
 #pragma once
 
 #include "precision.hpp"
+#include "Yggdrasil/glm/glm.hpp"
+#include "Yggdrasil/glm/ext.hpp"
 #include <initializer_list>
 #include <algorithm>
 #include <iterator>
@@ -198,6 +200,12 @@ class Vector3 {
     if a,b are vectors, axb = A_s.b, where A_s is the skew symmetric matrix of a*/
     Matrix3 skewSymmetricMatrix();
 
+    /*Returns a quaternion made from this vector.*/
+    Quaternion toQuaternion() const;
+
+    /*returns the glm vector equivalent*/
+    glm::vec3 toGlm() const;
+
     //zero all components of vector
     void clear(){
         x=y=z=0;
@@ -219,6 +227,8 @@ class Vector3 {
 
     //Constructor without params
     Matrix3();
+
+    Matrix3(real _data[9]);
 
     //Constructor with a list of reals
     // Matrix3(std::initializer_list<real> init) {
@@ -275,6 +285,12 @@ class Vector3 {
 
     /*Sets this matrix to be the rotation matrix corresponding to the given quaternion*/
     void setOrientation(const Quaternion &q);
+
+    /*Turns this matrix into an identity matrix. Does not return a new matrix.*/
+    void identityMatrix();
+
+    /*returns the glm equivalent matrix*/
+    glm::mat3 toGlm()const;
  };
 
 
@@ -293,6 +309,12 @@ class Matrix4 {
     //Returns a matrix that is this matrix multiplied by the given other matrix
     Matrix4 operator*(const Matrix4 &o) const;
 
+    //Returns a matrix addition between this and given matrix
+    Matrix4 operator+(const Matrix4 &o) const;
+
+    //Assumes vec wants to be added to the position vector of this matrix.
+    Matrix4 operator+(const Vector3 &vec) const;
+
     /*returns deeterminant of matrix*/
     real getDeterminant() const;
 
@@ -309,8 +331,12 @@ class Matrix4 {
         setInverse(*this);
     }
 
-    //Sets mat to be rot mat corresponding to given quaternion
+    //Sets mat to be state mat corresponding to given quaternion and position vec
     void setOrientAndPos(const Quaternion &q, const Vector3 &pos);
+
+    //sets mat to be state mat corresponding to given rot mat and position vec
+    void setOrientAndPos(const Matrix3 &rot, const Vector3 &pos);
+
 
     /*transform the given vector by the transformational inverse of this matrix*/
     Vector3 transformInverse(const Vector3 &vector) const;
@@ -324,6 +350,9 @@ class Matrix4 {
 
     //Transform the given direction vector by the transformational inverse of this matrix;
     Vector3 transformInvDir(const Vector3 &vector) const;
+
+    /*Turns this matrix into a matrix containing both*/
+    glm::mat4 toGlm()const;
 
 };
 
@@ -364,6 +393,8 @@ class Quaternion {
     /*Normalizes the quaternion to unit length, making it a valid orientation quaternion*/
     void normalize();
 
+    Quaternion operator *(const Quaternion &o)const;
+
     /*Multiplies the quaternion by the given quaternion.*/
     void operator *=(const Quaternion &multiplier);
 
@@ -375,6 +406,18 @@ class Quaternion {
     @param vector The vector to add.
     @param scale The amount of the vector to add.*/
     void addScaledVector(const Vector3& vector, real scale);
+
+    /*returns the quaternion in euler angles.*/
+    Vector3 toEulerAngles() const;
+
+    /*rotates Quaternion*/
+    void rotate(const Quaternion &other);
+
+    /*Returs a rotation matrix bfrom this quaternion*/
+    Matrix3 toMatrix() const;
+
+    /*Creates a glm-type to pass to the rendering engine*/
+    glm::quat toGlm()const;
 };
 }
 

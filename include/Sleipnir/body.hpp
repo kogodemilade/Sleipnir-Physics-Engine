@@ -57,6 +57,9 @@ class RigidBody {
         vice versa. This can be achieved by calling the getPointIN *Space functions.*/
         Matrix4 transformMatrix;
 
+        /*Holds the state (position and orientation) of the object*/
+        Matrix4 state;
+
         /*Holds the inverse of the body's inertia tensor in local space. 
         inertia tensor provided must not be degenerate.
         The inverse tensor is used for the same reasons as for inverse mass. 
@@ -85,7 +88,8 @@ class RigidBody {
         bool canSleep;
 
         /*Threshold to dheck when deciding whether a body is asleep or not. Defaults to 0.2*/
-        real sleepEpsilon=0.2;
+        real sleepEpsilon=0.4;
+        
 
     public:
         /*Creates a new rigid body instance*/
@@ -93,6 +97,9 @@ class RigidBody {
 
         /*Creates a new rigid body instance given mass, position and orientation. Set mass=0 or REAL_MAX for infinitely heavy weights*/
         RigidBody(real mass, Vector3 &pos, Quaternion &orientation);
+
+        /*Creates a new rigid body instance with given params*/
+        RigidBody(real _mass, Vector3 &pos, Quaternion &orient, real _size);
 
         /*Calculates internal data from state data.
          This should be called after the body's state is altered directly 
@@ -201,6 +208,9 @@ class RigidBody {
         @param rot The vector containing the rotation*/
         void rotateByVector(Vector3 &rot);
 
+        /*Rotate the body*/
+        void rotate(Quaternion &q);
+
         /*Update position of body in world space. Equivalent to: setPosition(getPosition)+addition)*/
         void updatePosition(Vector3 &addedPos);
 
@@ -266,5 +276,8 @@ class RigidBody {
 
         /*check whether a body should be put to sleep and sleep if so*/
         void checkShouldSleep(real bias=0.8f,  real duration=0.01);
+
+        /*Get orientaion and position matrix of object*/
+        Matrix4 getPosandOrient() const {return state;}
 };
 }

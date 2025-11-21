@@ -5,7 +5,7 @@
 using namespace cyclone;
 
 void Primitive::calculateInternals(){
-    transform = body->getTransform() * offset;
+    transform = body->getTransform() + offset;
 }
 
 void Primitive::bindPrimitive(){

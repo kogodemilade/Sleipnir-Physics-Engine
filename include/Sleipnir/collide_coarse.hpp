@@ -98,6 +98,11 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
     const BVHNode<BoundingVolumeClass> *other,
     std::vector<PotentialContact*> contacts,
     unsigned limit) const {
+
+                //If one isn't occupied, no overlap
+        if(!(children[0]&&children[1])) return 0;
+
+
         //Early-out if we don't overlap or if we have no room to report contacts.
         if(!overlaps(other) || limit ==0) return 0;
 

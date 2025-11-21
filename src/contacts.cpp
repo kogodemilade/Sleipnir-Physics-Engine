@@ -461,8 +461,9 @@ for (unsigned i=0; i<2; i++){
     Vector3 linearMoveVec = contactNormal * linearMove;
     linearChange[0] = linearMoveVec;
     rotationChange[0] = rotation;
+    Quaternion rotQuat = rotation.toQuaternion();
     body[0]->updatePosition(linearMoveVec);
-    body[0]->rotateByVector(rotation);
+    body[0]->rotate(rotQuat);
 
 
 

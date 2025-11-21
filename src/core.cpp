@@ -1,4 +1,5 @@
 #include "../include/Sleipnir/core.hpp" //CHANGE TO #include "cyclone/core.hpp"
+#include <cmath>
 
 using namespace cyclone;
 
@@ -57,6 +58,29 @@ Matrix3 Vector3::skewSymmetricMatrix(){
     res.data[7] = x;
     return res;
 }
+
+
+Quaternion Vector3::toQuaternion()const{
+    Vector3 copy = *this;
+    copy.normalize();
+    real angle = copy.magnitude();
+
+    real half = angle*0.5f;
+    real s = sin(half);
+
+    Quaternion q;
+    q.w = cos(half);
+    q.x = copy.x * s;
+    q.y = copy.y * s;
+    q.z = copy.z * s;
+    return q;
+}
+
+glm::vec3 Vector3::toGlm() const{
+    return glm::vec3(x, y, z);
+}
+
+
 
 
 
@@ -191,6 +215,23 @@ void Matrix4::setOrientAndPos(const Quaternion &q, const Vector3 &pos){
     data[11] = pos.z;
 }
 
+void Matrix4::setOrientAndPos(const Matrix3 &rot, const Vector3 &pos){
+    data[0] = rot.data[0];
+    data[1] = rot.data[1];
+    data[2] = rot.data[2];
+    data[3] = pos.x;
+
+    data[4] = rot.data[3];
+    data[5] = rot.data[4];
+    data[6] = rot.data[5];
+    data[7] = pos.y;
+
+    data[8] = rot.data[6];
+    data[9] = rot.data[7];
+    data[10] = rot.data[8];
+    data[11] = pos.z;
+}
+
 Vector3 Matrix4::transformInverse(const Vector3 &vector) const{
     Vector3 tmp = vector;
     tmp.x -= data[3];
@@ -218,9 +259,62 @@ Vector3 Matrix4::transform(const Vector3 &vector) const{
     return Vector3(tmp.x, tmp.y, tmp.z);
 }
 
+glm::mat4 Matrix4::toGlm() const {
+    glm::mat4 result(1.0f); // initializes last row/column correctly
+
+    // Cyclone: row-major 4x3 data stored as 12 floats
+    // GLM: column-major 4x4
+
+    for (int r = 0; r < 3; r++) {          // only 3 valid rows
+        for (int c = 0; c < 4; c++) {      // 4 columns (3 rotation + translation)
+            result[c][r] = data[r * 4 + c];
+        }
+    }
+
+    // Last row should be (0, 0, 0, 1)
+    result[0][3] = 0.0f;
+    result[1][3] = 0.0f;
+    result[2][3] = 0.0f;
+    result[3][3] = 1.0f;
+
+    return result;
+}
+
+Matrix4 Matrix4::operator+(const Matrix4 &o) const{
+    Matrix4 res;
+    for (int i =0; i < 12; i++){
+        res.data[i] = o.data[i] + data[i];
+    }
+    return res;
+}
+
+Matrix4 Matrix4::operator+(const Vector3 &vec) const{
+    Matrix4 res;
+    for (int i=0; i < 12; i++){
+        res.data[i] = data[i];
+
+        if (i==3) res.data[i] += vec[0];
+        if (i==7) res.data[i] += vec[1];
+        if (i==11) res.data[i] += vec[2];
+    }
+    return res;
+}
+
+
+
+
+
+
+
 
 Matrix3::Matrix3(){
     real data[9];
+}
+
+Matrix3::Matrix3(real _data[9]){
+    for (size_t i=0; i < 9; i++){
+        data[i] = _data[i];
+    }
 }
 
 void Matrix3::setComponents(const Vector3 &a, const Vector3 &b, const Vector3 &c){
@@ -236,6 +330,17 @@ void Matrix3::setComponents(const Vector3 &a, const Vector3 &b, const Vector3 &c
     data[5] = c.y;
     data[8] = c.z;
 }
+
+void Matrix3::identityMatrix(){ //New addition, check.
+    for(int i=0; i < 12; i++){
+        if(i%4 != 0){
+        (*this).data[i] = 0;
+        }
+        else {
+            (*this).data[i] = 1;
+        }
+    }
+};
 
 Vector3 Matrix3::operator *(const Vector3 &vec) const{
     real row1 = data[0]*vec.x + data[1]*vec.y + data[2]*vec.z;
@@ -363,6 +468,22 @@ void Matrix3::setOrientation(const Quaternion &q){
     data[8] = 1 - (2*(q.x*q.x + q.y*q.y));
 }
 
+glm::mat3 Matrix3::toGlm() const{
+    glm::mat3 out(1.0f);
+
+    for (int r = 0; r < 3; r++) {
+        for (int c = 0; c < 3; c++) {
+            out[c][r] = data[r * 3 + c]; 
+        }
+    }
+
+    return out;
+}
+
+
+
+
+
 
 Quaternion::Quaternion(real w, real x, real y, real z): w(w), x(x), y(y), z(z) {}
 
@@ -373,11 +494,12 @@ Quaternion::Quaternion(){
 }
 
 void Quaternion::normalize() {
-    real d = w * (w+x) * (x+y) * (y+z) * z;
+    real d = w*w + x*x + y*y + z*z;
 
     //Check for zero length quaternion, and use the no-rotation quaternion in that case.
-    if (fabs(d) < 0.001){
+    if (fabs(d) < 0.0001){
         w=1;
+        x=y=z=0;
         return;
     }
     d = ((real)1.0)/real_sqrt(d);
@@ -395,9 +517,25 @@ void Quaternion::operator *=(const Quaternion &o) {
     z = q.w*o.z + q.x*o.y - q.y*o.z + q.z*o.w;
 }
 
-void Quaternion::rotateByVector(const Vector3 &vector) {
-    Quaternion q(0, vector.x, vector.y, vector.z);
-    (*this) *= q;
+Quaternion Quaternion::operator *(const Quaternion &o)const {
+    Quaternion q = *this;
+    Quaternion res;
+    res.w = q.w*o.w - q.x*o.x - q.y*o.y - q.z*o.z;
+    res.y = q.w*o.y - q.x*o.z + q.y*o.w - q.z*o.x;
+    res.x = q.w*o.x + q.x*o.w - q.y*o.z - q.z*o.y;
+    res.z = q.w*o.z + q.x*o.y - q.y*o.z + q.z*o.w;
+
+    return res;
+}
+
+void Quaternion::rotateByVector(const Vector3 &vec) {
+real angle = sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+
+if (angle < 1e-6) return;
+
+real half = angle*0.5f;
+real s = sin(half);
+real c=cos(half);
 }
 
 void Quaternion::addScaledVector(const Vector3& vector, real scale) {
@@ -407,4 +545,72 @@ void Quaternion::addScaledVector(const Vector3& vector, real scale) {
     x += q.x * ((real)0.5);
     y += q.y * ((real)0.5);
     z += q.z * ((real)0.5);
+}
+
+Vector3 Quaternion::toEulerAngles() const{
+    real w_ = w;
+    real x_ = x;
+    real y_ = y;
+    real z_ = z;
+
+    //Roll (x-axis rotation)
+    real sinr = 2.0 * (w * x+y * z);
+    real cosr = 1.0 - 2.0 * (x*x + y*y);
+    real roll = std::atan2(sinr, cosr);
+
+    //Pitch (y-axis rotation)
+    real sinp = 2.0 * (w*y - z*x);
+    real pitch;
+    if(std::abs(sinp) >= 1.0){
+        pitch = std::copysign(0.5*real_pi, sinp);
+    } else{
+        pitch = std::asin(sinp);
+    }
+
+    //Yaw (z-axis rotation)
+    real siny = 2.0*(w*z + x*y);
+    real cosy = 1.0 - 2.0*(y*y + z*z);
+    real yaw = std::atan2(siny, cosy);
+
+    return Vector3(roll, pitch, yaw);
+
+}
+
+void Quaternion::rotate(const Quaternion &other){
+    Quaternion q = other*(*this);
+    *this = q;
+}
+
+Matrix3 Quaternion::toMatrix() const{
+    real x_ = x;
+    real y_ = y;
+    real z_ = z;
+    real w_ = w;
+
+    real x2 = x_ + x_;
+    real y2 = y_ + y_;
+    real z2 = z_ + z_;
+
+    real xx = x_ * x2;
+    real yy = y_ * y2;
+    real zz = z_ * z2;
+    real xy = x_ * y2;
+    real xz = x_ * z2;
+    real yz = y_ * z2;
+    real wx = w_ * x2;
+    real wy = w_ * y2;
+    real wz = w_ * z2;
+
+    real data[9] = {
+        1.0f - (yy + zz), xy - wz,       xz + wy,
+        xy + wz,         1.0f - (xx + zz), yz - wx,
+        xz - wy,         yz + wx,        1.0f - (xx + yy)
+    };
+    return Matrix3(
+        data
+    );
+}
+
+glm::quat Quaternion::toGlm()const{
+    return glm::quat(w, x, y, z);
 }

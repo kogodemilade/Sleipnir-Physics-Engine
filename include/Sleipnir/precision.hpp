@@ -16,6 +16,7 @@ namespace cyclone {
 
     #define real_cos cosf
     #define real_exp expf
+    #define real_pi 3.14159
     //defines precision for real numbers. float is used originally
 
     typedef float real;

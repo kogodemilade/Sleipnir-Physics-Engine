@@ -97,6 +97,26 @@ class Sphere : public Primitive {
         Vector3 pos;
     public:
         real radius;
+
+        //Can be overridden for objects with custom inertia tensors like irrotational objects
+        Matrix3 inertiaTensor;
+
+        Sphere(real _radius, RigidBody* _body, Matrix4 _offset){
+            radius = _radius;
+            body = _body;
+            offset = _offset;
+
+            Matrix3 ident;
+            ident.identityMatrix();
+            real inertia = 0.4 * _body->getMass() * _radius * radius;
+            inertiaTensor = ident * inertia;
+            bindPrimitive();
+            calculateInternals();
+        }
+
+        Sphere() {}
+
+
         unsigned getType() const override {return PRIMITIVESPHERE;}
 
 };

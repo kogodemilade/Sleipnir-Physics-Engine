@@ -58,6 +58,20 @@ RigidBody::RigidBody(real _mass, Vector3 &pos, Quaternion &orient){
     position = pos;
 
     orientation = orient;
+    
+}
+
+RigidBody::RigidBody(real _mass, Vector3 &pos, Quaternion &orient, real _size){
+    if (_mass==0 || _mass==REAL_MAX)
+    {inverseMass = 0.0f;}
+    else{
+    inverseMass = (real)1/_mass;}
+
+    position = pos;
+
+    orientation = orient;
+
+    size = _size;
 }
  
 bool RigidBody::hasFiniteMass(){
@@ -76,6 +90,7 @@ void RigidBody::calculateDerivedData(){
     _calculateTransformMatrix(transformMatrix, position, orientation);
     //Calculate the inertiaTensor in world space.
     _transformInertiaTensor(inverseInertiaTensorWorld, inverseInertiaTensor, transformMatrix);
+    state.setOrientAndPos(orientation, position);
     
 }
 
@@ -92,7 +107,7 @@ void RigidBody::clearAccumulators(){
 void RigidBody::addForceAtBodyPoint(const Vector3 &force, const Vector3 &point) {
     //Convert the point from body space (relative to center of mass) to world space.
     Vector3 pt;
-    pt.localToWorld(point, transformMatrix);
+    pt = pt.localToWorld(point, transformMatrix);
     addForceAtPoint(force, pt);
 }
 
@@ -238,6 +253,10 @@ void RigidBody::rotateByVector(Vector3 &rot){
     orientation.rotateByVector(rot);
 }
 
+void RigidBody::rotate(Quaternion &q){
+    orientation.rotate(q);
+}
+
 Vector3 RigidBody::getPointInLocalSpace(const Vector3 &pt) const{
     return transformMatrix.transformInverse(pt);
 }
@@ -291,7 +310,8 @@ void RigidBody::checkShouldSleep(real _bias, real duration){
     real currentMotion = velocity.scalarProduct(velocity) + rotation.scalarProduct(rotation);
 
     /*Recency weighted Sverage for a rolling average of the motion (or energy)*/
-    real bias = real_pow(_bias, duration);
+    // real bias = real_pow(_bias, duration);
+    real bias = _bias;
     motion = bias*motion + (1-bias)*currentMotion;
 
     if (motion > 10*sleepEpsilon) motion = 10*sleepEpsilon;
@@ -303,7 +323,7 @@ void RigidBody::checkShouldSleep(real _bias, real duration){
 
 void RigidBody::integrate(real duration) {
     if (!isAwake) return;
-    checkShouldSleep(0.8, duration);
+    checkShouldSleep(0.6, duration);
     //Calculate linear acceleration from force inputs.
     // lastFrameAcceleration = acceleration;
     acceleration = Vector3(0, 0, 0);
