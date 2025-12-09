@@ -10,6 +10,7 @@ World::World(unsigned maxContacts, unsigned iterations):
 {
     collision_data->contactsLeft = maxContacts;
     collision_data->contacts.reserve(maxContacts);
+    plane = nullptr;
     // potentialContacts.assign()
 }
 
@@ -39,6 +40,7 @@ unsigned World::generateContacts() {
         Contact nextContact;
         // if(!&contacts[nextContact]) break;
         unsigned used = contactGen->addContact(&nextContact, limit);
+        if (!used) continue;
         contacts.push_back(nextContact);
         limit -= used;
         // nextContact += used;
@@ -72,8 +74,8 @@ unsigned World::coarseCollision(){
 unsigned World::fineCollision(unsigned numPotentialContacts){
     unsigned numContacts = 0;
     for (auto contact: potentialContacts){
-        RigidBody *body0 = contact->body[0];
-        RigidBody *body1 = contact->body[1];
+        RigidBody *body0 = contact.body[0];
+        RigidBody *body1 = contact.body[1];
 
         Primitive *body0_prim = body0->getPrimitive();
         Primitive *body1_prim = body1->getPrimitive();
@@ -88,7 +90,7 @@ unsigned World::fineCollision(unsigned numPotentialContacts){
                         numContacts += detector.boxAndSphere(static_cast<Box&>(*body1_prim), static_cast<Sphere&>(*body0_prim), collision_data);
                         break;
                     case(PRIMITIVEPLANE):
-                        numContacts += detector.sphereAndTruePlane(static_cast<Sphere&>(*body0_prim), static_cast<Plane&>(*body1_prim), collision_data);
+                        numContacts += detector.sphereAndHalfSpace(static_cast<Sphere&>(*body0_prim), static_cast<Plane&>(*body1_prim), collision_data);
                         break;
                         } break;
             case(PRIMITIVEBOX):
@@ -123,9 +125,9 @@ void World::runPhysics(real duration){
     registry.updateForces(duration);
 
     //Integrate objects
-    for (auto body: rigidBodies){
-        body->integrate(duration);
-    }
+    // for (auto body: rigidBodies){
+    //     body->integrate(duration);
+    // }
     unsigned numPotContacts = coarseCollision();
         
     int i = 0;
@@ -133,9 +135,9 @@ void World::runPhysics(real duration){
     if(plane){
     for (auto body: rigidBodies){
         if (body->getPrimitive()->getType() == PRIMITIVEPLANE) continue;
-        PotentialContact *pc = new PotentialContact;
-        pc->body[0] = body;
-        pc->body[1] = plane;
+        PotentialContact pc;
+        pc.body[0] = body;
+        pc.body[1] = plane;
         potentialContacts.push_back(pc);
         numPotContacts += 1;
     }}
@@ -147,6 +149,10 @@ void World::runPhysics(real duration){
     resolver.resolveContacts(collision_data->contacts, collisions, duration);
 
     // delete[] root;
+
+        for (auto body: rigidBodies){
+        body->integrate(duration);
+    }
     
     resetCollisionData();
 }

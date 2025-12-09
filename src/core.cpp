@@ -62,7 +62,7 @@ Matrix3 Vector3::skewSymmetricMatrix(){
 
 Quaternion Vector3::toQuaternion()const{
     Vector3 copy = *this;
-    copy.normalize();
+    // copy.normalize();
     real angle = copy.magnitude();
 
     real half = angle*0.5f;
@@ -73,6 +73,7 @@ Quaternion Vector3::toQuaternion()const{
     q.x = copy.x * s;
     q.y = copy.y * s;
     q.z = copy.z * s;
+    q.normalize();
     return q;
 }
 
@@ -85,7 +86,7 @@ glm::vec3 Vector3::toGlm() const{
 
 
 Matrix4::Matrix4(){
-    real data[12];
+    data[12];
 }
 
 Vector3 Matrix4::transformDirection(const Vector3 &vector) const {
@@ -105,9 +106,14 @@ Vector3 Matrix4::transformInvDir(const Vector3 &vector) const {
 }
 
 real Matrix4::getDeterminant() const {
-    return data[8]*data[5]*data[2] + data[4]*data[9]*data[2]+
-            data[8]*data[1]*data[6]-data[0]*data[9]*data[6]-
-            data[4]*data[1]*data[10]+data[0]*data[5]*data[10];
+    float t1 = data[0] * data[5] * data[10];
+float t2 = data[0] * data[6] * data[9];
+float t3 = data[1] * data[4] * data[10];
+float t4 = data[1] * data[6] * data[8];
+float t5 = data[2] * data[4] * data[9];
+float t6 = data[2] * data[5] * data[8];
+
+return t1 - t2 - t3 + t4 + t5 - t6;
 }
 
 Vector3 Matrix4::getAxisVector(int i) const {
@@ -205,7 +211,7 @@ void Matrix4::setOrientAndPos(const Quaternion &q, const Vector3 &pos){
     data[3] = pos.x;
 
     data[4] = 2*(q.x*q.y - q.z*q.w);
-    data[5] = 1 - (2*(q.z*q.x + q.z*q.z));
+    data[5] = 1 - 2*(q.x*q.x + q.z*q.z);
     data[6] = 2*(q.y*q.z + q.x*q.w);
     data[7] = pos.y;
 
@@ -213,6 +219,12 @@ void Matrix4::setOrientAndPos(const Quaternion &q, const Vector3 &pos){
     data[9] = 2*(q.y*q.z - q.x*q.w);
     data[10] = 1 - (2*(q.x*q.x + q.y*q.y));
     data[11] = pos.z;
+}
+
+void Matrix4::setZero(){
+    for (int i = 0; i<12; i++){
+        data[i] = 0;
+    }
 }
 
 void Matrix4::setOrientAndPos(const Matrix3 &rot, const Vector3 &pos){
@@ -308,7 +320,7 @@ Matrix4 Matrix4::operator+(const Vector3 &vec) const{
 
 
 Matrix3::Matrix3(){
-    real data[9];
+    data[9];
 }
 
 Matrix3::Matrix3(real _data[9]){
@@ -331,16 +343,25 @@ void Matrix3::setComponents(const Vector3 &a, const Vector3 &b, const Vector3 &c
     data[8] = c.z;
 }
 
-void Matrix3::identityMatrix(){ //New addition, check.
-    for(int i=0; i < 12; i++){
-        if(i%4 != 0){
-        (*this).data[i] = 0;
-        }
-        else {
-            (*this).data[i] = 1;
-        }
+void Matrix3::setDiagonal(real a, real b, real c){
+    for(int i=0; i<9; i++){
+        data[i] = 0;
     }
-};
+    data[0] = a;
+    data[4] = b;
+    data[8] = c;
+   }
+
+void Matrix3::identityMatrix() {
+    for (int i = 0; i < 9; ++i) data[i] = 0;
+    data[0] = data[4] = data[8] = 1;
+}
+
+void Matrix3::setZero(){
+    for (int i = 0; i<9; i++){
+        data[i] = 0;
+    }
+}
 
 Vector3 Matrix3::operator *(const Vector3 &vec) const{
     real row1 = data[0]*vec.x + data[1]*vec.y + data[2]*vec.z;
@@ -381,7 +402,7 @@ void Matrix3::setInverse(const Matrix3 &m) {
     real t16 = (t4*m.data[8] - t6*m.data[7] - t8*m.data[8] + t10*m.data[7] + t12*m.data[5] - t14*m.data[4]);
 
     //Make sure det is non-zero
-    if (t16 == (real)0.0f) return;
+    if (fabs(t16) < 1e-9) return;
     real t17 = 1/t16;
 
     data[0] = (m.data[4]*m.data[8] - m.data[5]*m.data[7])*t17;
@@ -490,7 +511,7 @@ Quaternion::Quaternion(real w, real x, real y, real z): w(w), x(x), y(y), z(z) {
 Quaternion::Quaternion(real data[4]): w(data[0]), x(data[1]), y(data[2]), z(data[3]) {}
 
 Quaternion::Quaternion(){
-    real w=x=y=z=0;
+    w=x=y=z=0;
 }
 
 void Quaternion::normalize() {
@@ -512,18 +533,18 @@ void Quaternion::normalize() {
 void Quaternion::operator *=(const Quaternion &o) {
     Quaternion q = *this;
     w = q.w*o.w - q.x*o.x - q.y*o.y - q.z*o.z;
-    x = q.w*o.x + q.x*o.w - q.y*o.z - q.z*o.y;
-    y = q.w*o.y - q.x*o.z + q.y*o.w - q.z*o.x;
-    z = q.w*o.z + q.x*o.y - q.y*o.z + q.z*o.w;
+    x = q.w*o.x + q.x*o.w + q.y*o.z - q.z*o.y;
+    y = q.w*o.y - q.x*o.z + q.y*o.w + q.z*o.x;
+    z = q.w*o.z + q.x*o.y - q.y*o.x + q.z*o.w;
 }
 
 Quaternion Quaternion::operator *(const Quaternion &o)const {
     Quaternion q = *this;
     Quaternion res;
     res.w = q.w*o.w - q.x*o.x - q.y*o.y - q.z*o.z;
-    res.y = q.w*o.y - q.x*o.z + q.y*o.w - q.z*o.x;
-    res.x = q.w*o.x + q.x*o.w - q.y*o.z - q.z*o.y;
-    res.z = q.w*o.z + q.x*o.y - q.y*o.z + q.z*o.w;
+    res.x = w*o.x + x*o.w + y*o.z - z*o.y;
+    res.y = w*o.y - x*o.z + y*o.w + z*o.x;
+    res.z = w*o.z + x*o.y - y*o.x + z*o.w;
 
     return res;
 }

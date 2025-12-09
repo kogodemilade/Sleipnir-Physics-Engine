@@ -23,7 +23,6 @@ class World {
 
     private:
     //Holds a list of bodies
-    std::vector<RigidBody*> rigidBodies;
 
     //Holds head of registered bodies
     // RigidBody *firstbody;
@@ -55,7 +54,7 @@ class World {
 
     // PotentialContact *basePotContact = new PotentialContact;
 
-    std::vector<PotentialContact*> potentialContacts;
+    std::vector<PotentialContact> potentialContacts;
     
     //Root of the bvh Tree for Coarse Contact resolution
     BVHNode<BoundingSphere> root;
@@ -85,6 +84,9 @@ class World {
     unsigned fineCollision(unsigned numPotentialContacts);
 
     void resetCollisionData();
+
+    std::vector<RigidBody*> rigidBodies;
+
 
     /**
     * Initializes the world for a simulation frame. This clears

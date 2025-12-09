@@ -41,7 +41,7 @@ unsigned CollisionDetector::sphereAndSphere(Sphere &one, Sphere &two, CollisionD
 
 
     //Find the vector between the objects
-    Vector3 midline = positionOne - positionTwo;
+    Vector3 midline = positionTwo - positionOne; //Since the normalized midline acts as the contact's normal, we do pos2-1 to get the direction pointing from 1 to 2
     real size = midline.magnitude();
 
     /*see if large enough.*/
@@ -54,15 +54,16 @@ unsigned CollisionDetector::sphereAndSphere(Sphere &one, Sphere &two, CollisionD
     normal.normalize();
 
     Contact contact;
-    contact.contactNormal = normal;
-    contact.contactPoint = positionOne + midline*(real)0.5;
-    contact.penetration = (one.radius+two.radius - size);
+    // contact.contactNormal = normal;
+    Vector3 contactPoint = positionOne + midline*(real)0.5;
+    real pen = fabs(one.radius+two.radius - size);
 
-    //Write the apprpriate data
-    contact.body[0] = one.body;
-    contact.body[1] = two.body;
-    contact.restitution = data->restitution;
-    contact.friction = data->friction;
+    //Write the apprpriate data (commented out next 4 lines instead of deletion for debugging purposes. they've been replaced by the setData method.)
+    // contact.body[0] = one.body;
+    // contact.body[1] = two.body;
+    // contact.restitution = data->restitution;
+    // contact.friction = data->friction;
+    contact.setData(contactPoint, normal, pen, one.body, two.body, data->restitution, data->friction);
 
     data->contacts.push_back(std::move(contact));
         //Point contacts to the head of the array
@@ -91,12 +92,12 @@ unsigned CollisionDetector::sphereAndHalfSpace( Sphere &sphere,  Plane &plane, C
     if (ballDistance >= 0) return 0;
 
     //Create the contact- normal in plane's direction
-    Contact contact;
+    Contact contact; //Replace next few lines with setData method
     contact.contactNormal = plane.normal;
-    contact.penetration = -ballDistance;
+    contact.penetration = fabs(ballDistance);
     contact.contactPoint = pos - plane.normal * (ballDistance+sphere.radius);
-    contact.body[0]=sphere.body;
-    contact.body[1]=NULL;
+    contact.body[0]=plane.body;
+    contact.body[1]=sphere.body;
     contact.restitution = data->restitution;
     contact.friction=data->friction;
 
@@ -124,22 +125,22 @@ unsigned CollisionDetector::sphereAndTruePlane(Sphere &sphere,
 
         //Check which side of plane we're on
         Vector3 normal = plane.normal;
-        real penetration = -centerDistance;
+        real penetration = centerDistance;
         if (centerDistance < 0) {
             normal *= -1;
             penetration = -penetration;
         }
-        penetration += sphere.radius;
+        penetration -= sphere.radius;
 
         //Create the contact - it has a normal in the plane direction
 
         Contact contact;
-        contact.contactNormal = normal;
-        contact.penetration = penetration;
+        contact.contactNormal = normal; //Normal points from plane to body, so body0 = plane, body1 = sphere
+        contact.penetration = fabs(penetration); //We only want its magnitude
         contact.contactPoint = pos - plane.normal *centerDistance;
 
-        contact.body[0] = sphere.body;
-        contact.body[1] = NULL;
+        contact.body[0] = plane.body;
+        contact.body[1] = sphere.body; 
         contact.restitution = data->restitution;
         contact.friction = data->friction;
 
@@ -168,25 +169,25 @@ unsigned CollisionDetector::boxAndHalfSpace(Box &box, Plane &plane, CollisionDat
     unsigned contactsUsed = 0;
     Contact contact;
     for(auto vertex: vertices){
-        vertex = box.offset*vertex;
-        vertex = box.getTransform().transform(vertex);
+        // vertex = box.offset*vertex;
+        Vector3 vertexPos = box.getTransform().transform(vertex);
 
 
         /*Calculate rhe distance from the plane.*/
-        real vertexDist = vertex * plane.normal;
+        real vertexDist = vertexPos * plane.normal;
 
         /*Compare to plane's distance*/
-        if (vertexDist <= plane.offset + data->tolerance) {
+        if (vertexDist <= plane.offset - data->tolerance) {
             //Create the conteact data
             /*The contact point is halfway between the vertex and the plane. 
             We multiply the direction by half the separation distance and 
             add the vertex location.*/
             Vector3 contactPoint = plane.normal;
-            contactPoint *= 0.5 *(vertexDist - plane.offset);
-            contactPoint += vertex;
-            real penetration = plane.offset - vertexDist;
+            contactPoint *= (vertexDist - plane.offset);
+            contactPoint += vertexPos;
+            real penetration = fabs(plane.offset - vertexDist);
 
-            contact.setData(contactPoint, plane.normal, penetration, box.body, NULL, data->restitution, data->friction);
+            contact.setData(contactPoint, plane.normal, penetration, plane.body, box.body, data->restitution, data->friction); //points from plane to box
 
             data->contacts.push_back(std::move(contact));
             contactsUsed++;
@@ -225,7 +226,7 @@ unsigned CollisionDetector::boxAndSphere(Box &box, Sphere &sphere, CollisionData
     if (dist < -box.halfSize.y) dist = -box.halfSize.y;
     closestPt.y = dist;
 
-    dist = relCenter.x;
+    dist = relCenter.z;
     if (dist > box.halfSize.z) dist = box.halfSize.z;
     if (dist < -box.halfSize.z) dist = -box.halfSize.z;
     closestPt.z = dist;
@@ -236,9 +237,9 @@ unsigned CollisionDetector::boxAndSphere(Box &box, Sphere &sphere, CollisionData
 
     //Compile the contact (transform back to world coordinates)
     Vector3 closestPtWorld = box.getTransform().transform(closestPt);
-    Vector3 contactNormal = (center-closestPtWorld);
+    Vector3 contactNormal = (center-closestPtWorld); //body1 - body0, sphere - box
     contactNormal.normalize();
-    real penetration = sphere.radius - real_sqrt(dist);
+    real penetration = fabs(sphere.radius - real_sqrt(dist));
 
     Contact contact;
     contact.setData(closestPtWorld, contactNormal, penetration, 
@@ -251,9 +252,13 @@ unsigned CollisionDetector::boxAndSphere(Box &box, Sphere &sphere, CollisionData
 
 
 real CollisionDetector::transformToAxis(const Box &box, const Vector3 &axis){
-    return box.halfSize.x * real_abs(axis*box.getAxis(0)) +
-        box.halfSize.y * real_abs(axis*box.getAxis(1))+
-        box.halfSize.z * real_abs(axis*box.getAxis(2));
+    Vector3 axis0 = box.getAxis(0).returnNormalizedVec();
+    real halfSizeX = box.halfSize.x * real_abs(axis*box.getAxis(0).returnNormalizedVec());
+    real halfSizeY = box.halfSize.y * real_abs(axis*box.getAxis(1).returnNormalizedVec());
+    real halfSizeZ =  box.halfSize.z * real_abs(axis*box.getAxis(2).returnNormalizedVec());
+    return box.halfSize.x * real_abs(axis*box.getAxis(0).returnNormalizedVec()) +
+        box.halfSize.y * real_abs(axis*box.getAxis(1).returnNormalizedVec())+
+        box.halfSize.z * real_abs(axis*box.getAxis(2).returnNormalizedVec());
 }
 
 
@@ -289,7 +294,7 @@ real CollisionDetector::penetrationOnAxis(const Box &one, const Box &two, const 
 bool CollisionDetector::tryAxis(const Box &one, const Box &two, Vector3 axis, const Vector3 &centerDist, 
     unsigned index, real& smallestPenetration, unsigned &smallestCase){ //Use reference for real and unsigned because we're modifying them.
         //Make sure we have a normalized axis, and don't check almost parallel axes.
-        if (axis.squareMagnitude() < 0.0001) return true;
+        if (axis.squareMagnitude() < 0.0001) return 1;
         axis.normalize();
 
         /*Get the value of interpenetration on this axis*/
@@ -307,7 +312,7 @@ bool CollisionDetector::tryAxis(const Box &one, const Box &two, Vector3 axis, co
 }
 
 //TODO: This may be useless. Review in future
-unsigned CollisionDetector::checkOverlap(const Box& box1, const Box& box2, const Vector3& centerDist, Vector3 axis, unsigned index, real pen, unsigned best){
+unsigned CollisionDetector::checkOverlap(const Box& box1, const Box& box2, const Vector3& centerDist, Vector3 axis, unsigned index, real &pen, unsigned &best){
     if (!tryAxis(box1, box2, axis, centerDist, index, pen, best)) return 0;
     return 1;
 }
@@ -330,7 +335,7 @@ void CollisionDetector::fillPointFaceBox(const Box &box1, const Box &box2, const
     if (box2.getAxis(2) * normal < 0) vertex.z = -vertex.z;
 
     //Create the contact data
-    contact.setData(box2.getTransform() * vertex, normal, pen, box1.body, box2.body, data->restitution, data->friction);
+    contact.setData(box2.getTransform() * vertex, normal, fabs(pen), box1.body, box2.body, data->restitution, data->friction); //Points from box1 to box2 (I think?)
     data->contacts.push_back(std::move(contact));
 }
 
@@ -357,7 +362,7 @@ Vector3 contactPoint(
         }
 
         mua = (dpOneTwo * dpStaTwo - smTwo * dpStaOne)/denom;
-        mub - (smOne*dpStaTwo - dpOneTwo*dpStaOne)/denom;
+        mub = (smOne*dpStaTwo - dpOneTwo*dpStaOne)/denom;
 
         /*If either of edges has nearest point out of bounds, then 
         edges aren't corssed, we have an edge-face contact. Our point 
@@ -387,30 +392,30 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
     /*Now we check each axes, returning if it gives us a 
     separating axis, and keeping track of the axis with the 
     smallest penetration otherwise.*/
-    checkOverlap(box1, box2, centerDist, box1.getAxis(0), 0, pen, best);
-    checkOverlap(box1, box2, centerDist, box1.getAxis(1), 1, pen, best);
-    checkOverlap(box1, box2, centerDist, box1.getAxis(2), 2, pen, best);
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(0), 0, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(1), 1, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(2), 2, pen, best)) return 0;
 
-    checkOverlap(box1, box2, centerDist, box2.getAxis(0), 3, pen, best);
-    checkOverlap(box1, box2, centerDist, box2.getAxis(1), 4, pen, best);
-    checkOverlap(box1, box2, centerDist, box2.getAxis(2), 5, pen, best);
+    if(!checkOverlap(box1, box2, centerDist, box2.getAxis(0), 3, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box2.getAxis(1), 4, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box2.getAxis(2), 5, pen, best)) return 0;
 
     /*Store bext axis-major, in case we run 
     into almost parallel edge collisions later*/
     unsigned bestSingleAxis = best;
 
     //Check overlap between 9 other parallel axes by finding cross product of each
-    checkOverlap(box1, box2, centerDist, box1.getAxis(0) % box2.getAxis(0), 6, pen, best);
-    checkOverlap(box1, box2, centerDist, box1.getAxis(0) % box2.getAxis(1), 7, pen, best);
-    checkOverlap(box1, box2, centerDist, box1.getAxis(0) % box2.getAxis(2), 8, pen, best);
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(0) % box2.getAxis(0), 6, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(0) % box2.getAxis(1), 7, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(0) % box2.getAxis(2), 8, pen, best)) return 0;
 
-    checkOverlap(box1, box2, centerDist, box1.getAxis(1) % box2.getAxis(0), 9, pen, best);
-    checkOverlap(box1, box2, centerDist, box1.getAxis(1) % box2.getAxis(1), 10, pen, best);
-    checkOverlap(box1, box2, centerDist, box1.getAxis(1) % box2.getAxis(2), 11, pen, best);
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(1) % box2.getAxis(0), 9, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(1) % box2.getAxis(1), 10, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(1) % box2.getAxis(2), 11, pen, best)) return 0;
 
-    checkOverlap(box1, box2, centerDist, box1.getAxis(2) % box2.getAxis(0), 12, pen, best);
-    checkOverlap(box1, box2, centerDist, box1.getAxis(2) % box2.getAxis(1), 13, pen, best);
-    checkOverlap(box1, box2, centerDist, box1.getAxis(2) % box2.getAxis(2), 14, pen, best);
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(2) % box2.getAxis(0), 12, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(2) % box2.getAxis(1), 13, pen, best)) return 0;
+    if(!checkOverlap(box1, box2, centerDist, box1.getAxis(2) % box2.getAxis(2), 14, pen, best)) return 0;
 
     /*Make sure we have a result*/
     assert(best != 0xffffff);
@@ -420,7 +425,7 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
     We can now deal with it in different ways depending on the case*/
     if (best < 3) {
         //We've got a vertex of box two on a face of box one.
-        fillPointFaceBox(box2, box1, centerDist*-1.0f, data, best, pen);
+        fillPointFaceBox(box1, box2, centerDist*-1.0f, data, best, pen);
         data->addContacts(1);
         return 1;
     }
@@ -428,7 +433,7 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
         /*We've got a vertex of box one on a face of box 2. 
         We use the same algorithm as above, but swap around one and two 
         (and therefore also the vector between their centres)*/
-        fillPointFaceBox(box1, box2, centerDist*-1.0f, data, best-3, pen);
+        fillPointFaceBox(box2, box1, centerDist*-1.0f, data, best-3, pen);
         data->addContacts(1);
         return 1;
     }
@@ -440,10 +445,11 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
         Vector3 oneAxis = box1.getAxis(oneAxisIndex);
         Vector3 twoAxis = box2.getAxis(twoAxisIndex);
         Vector3 axis = oneAxis % twoAxis;
+        if (fabs(axis.magnitude()) < 0.001)  return 0;
         axis.normalize();
 
         //Axis should point from box one to box two.
-        if (axis * centerDist > 0) axis = axis * -1.0f;
+        if (axis * centerDist < 0) axis = axis * -1.0f;
 
         /*We have axes, but not the edges: each axis has 
         4 edges parallel to it, we need to find out which for each object.
@@ -459,7 +465,7 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
             else if (box1.getAxis(i)*axis>0) ptOnOneEdge[i] = -ptOnOneEdge[i];
 
             if (i == twoAxisIndex) ptOnTwoEdge[i] = 0;
-            else if (box2.getAxis(i)*axis<0) ptOnOneEdge[i] = -ptOnOneEdge[i];
+            else if (box2.getAxis(i)*axis<0) ptOnTwoEdge[i] = -ptOnTwoEdge[i];
         }
 
         //Move them into world coordinates
@@ -474,7 +480,7 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
 
         /*We can fill the contact*/
         Contact contact;
-        contact.setData(vertex, axis, pen, box1.body, box2.body, data->restitution, data->friction);
+        contact.setData(vertex, axis, fabs(pen), box1.body, box2.body, data->restitution, data->friction); //tbh idek about this one...
         data->contacts.push_back(std::move(contact));
 
         data->addContacts(1);
@@ -496,15 +502,15 @@ unsigned CollisionDetector::boxAndPoint(const Box &box, const Vector3 &point, Co
     normal = box.getAxis(0)*((relPt.x < 0) ?-1:1);
 
     real depth = box.halfSize.y - real_abs(relPt.y);
-    if (min_depth < 0) return 0;
-    else if (depth<min_depth){
+    if (depth < 0) return 0;
+    if (depth<min_depth){
         min_depth = depth;
         normal=box.getAxis(1)*((relPt.y<0)?-1:1);
     }
 
     depth = box.halfSize.z - real_abs(relPt.z);
-    if (min_depth < 0) return 0;
-        else if (depth<min_depth){
+    if (depth < 0) return 0;
+        if (depth<min_depth){
         min_depth = depth;
         normal=box.getAxis(2)*((relPt.z<0)?-1:1);
     }

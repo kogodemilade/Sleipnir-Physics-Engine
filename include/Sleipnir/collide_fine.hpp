@@ -33,10 +33,10 @@ struct CollisionData {
     real restitution;
 
     /*Holds the lateral friction a normal*/
-    real friction;
+    real friction = 1;
 
-    /*Holds the tolerance for caluclating interenetration*/
-    real tolerance;
+    /*Holds the tolerance for caluclating interpenetration*/
+    real tolerance = 0.01;
 
     void addContacts(unsigned count);
 
@@ -114,7 +114,22 @@ class Sphere : public Primitive {
             calculateInternals();
         }
 
-        Sphere() {}
+        Sphere(real _radius, RigidBody* _body){
+            radius = _radius;
+            body = _body;
+            offset.setOrientAndPos(cyclone::Quaternion(1, 0, 0, 0), cyclone::Vector3(0, 0, 0));
+
+            Matrix3 ident;
+            ident.identityMatrix();
+            real inertia = 0.4 * _body->getMass() * _radius * radius;
+            inertiaTensor = ident * inertia;
+            bindPrimitive();
+            calculateInternals();
+        }
+
+        Sphere() {
+        offset.setOrientAndPos(cyclone::Quaternion(1, 0, 0, 0), cyclone::Vector3(0, 0, 0));
+        }
 
 
         unsigned getType() const override {return PRIMITIVESPHERE;}
@@ -125,17 +140,23 @@ class Plane :public Primitive {
     public:
         Vector3 normal;
 
-        //Distance of plane from normal
+        //Distance of plane from normal (above/below already given normal)
         real offset;
         unsigned getType() const override {return PRIMITIVEPLANE;}
 };
+
 
 class Box: public Primitive {
     public:
     /*Half of the size of the box in each axis. 
     The size in any axis would be 2 times the corresponding axis*/
-        Vector3 halfSize;
-        unsigned getType() const override {return PRIMITIVEBOX;}
+    Vector3 halfSize;
+    Box(){
+        Matrix3 ZeroMatrix;
+        ZeroMatrix.setZero();
+        offset.setOrientAndPos(ZeroMatrix, cyclone::Vector3(0, 0, 0));
+    }
+    unsigned getType() const override {return PRIMITIVEBOX;}
 };
 
 class HalfPlane :public Primitive {
@@ -194,7 +215,7 @@ class CollisionDetector {
     bool tryAxis(const Box &one, const Box &two, Vector3 axis, const Vector3 &toCentre, unsigned index, real& smallestPenetration, unsigned &smallestCase);
 
     /*(Box-to-Box specific) Checks for overlap. Wrapper on tryAxis, and returns 0 if there's no overlap for early stop outs.*/
-    unsigned checkOverlap(const Box& box1, const Box& box2, const Vector3&toCentre, Vector3 axis, unsigned index, real pen, unsigned best);
+    unsigned checkOverlap(const Box& box1, const Box& box2, const Vector3&toCentre, Vector3 axis, unsigned index, real &pen, unsigned &best);
 
 
     /*(Box-to-Box specific) This method is called when we know that a vertex from box two is in contact with box one*/

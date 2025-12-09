@@ -94,8 +94,8 @@ void RigidBody::calculateDerivedData(){
     
 }
 
-void RigidBody::addForce(const Vector3 &force){
-    setAwake(1);
+void RigidBody::addForce(const Vector3 &force, bool g){
+    if(!g) setAwake(1);
     forceAccum += force;
 }
 
@@ -163,7 +163,7 @@ real RigidBody::getAngularDamping() const{
 
 void RigidBody::setMass(const real mass){
     if (mass == 0.0){
-        inverseMass = REAL_MAX;
+        inverseMass = 0;
         return;
     }
     inverseMass = (real)1.0/mass;
@@ -285,7 +285,7 @@ void RigidBody::setAwake(const bool awake){
     if (awake) {
         isAwake=true;
         /*Add a bit of motion to avoid it falling asleep immediately*/
-        motion = sleepEpsilon*2.0f;
+        motion = sleepEpsilon*5.0f;
     } else {
         isAwake = false;
         velocity.clear();
@@ -307,23 +307,23 @@ void RigidBody::setCanSleep(bool sleepable){
 
 void RigidBody::checkShouldSleep(real _bias, real duration){
     /* A mass-independent approximation of total kinetic energy the body experiencex*/
-    real currentMotion = velocity.scalarProduct(velocity) + rotation.scalarProduct(rotation);
+       real currentMotion = velocity.scalarProduct(velocity) + rotation.scalarProduct(rotation);
 
-    /*Recency weighted Sverage for a rolling average of the motion (or energy)*/
+    /*Recency weighted average for a rolling average of the motion (or energy)*/
     // real bias = real_pow(_bias, duration);
     real bias = _bias;
-    motion = bias*motion + (1-bias)*currentMotion;
+    motion = bias*currentMotion + (1-bias)*motion;
 
-    if (motion > 10*sleepEpsilon) motion = 10*sleepEpsilon;
+    if (motion > 100*sleepEpsilon) motion = 100*sleepEpsilon;
     
-    if (motion < sleepEpsilon && isAwake){
+       if (motion < sleepEpsilon && isAwake){
         setAwake(false);
     }
 }
 
 void RigidBody::integrate(real duration) {
+    checkShouldSleep(0.7, duration);
     if (!isAwake) return;
-    checkShouldSleep(0.6, duration);
     //Calculate linear acceleration from force inputs.
     // lastFrameAcceleration = acceleration;
     acceleration = Vector3(0, 0, 0);

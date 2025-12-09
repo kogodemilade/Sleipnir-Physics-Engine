@@ -2,6 +2,7 @@
 
 #include "precision.hpp"
 #include "core.hpp"
+#include <string>
 // #include "collide_fine.hpp"
 // #include ""
 
@@ -76,7 +77,7 @@ class RigidBody {
 
         /*Holds the amount of motion of the body. This is a recency-
         weighted mean that can be used to put a body to sleep.*/
-        real motion;
+        real motion=100;
 
         /*A body can be put to sleep to avoid it being 
         updated by the integration functions or affected by 
@@ -88,10 +89,17 @@ class RigidBody {
         bool canSleep;
 
         /*Threshold to dheck when deciding whether a body is asleep or not. Defaults to 0.2*/
-        real sleepEpsilon=0.4;
+        real sleepEpsilon=0.04;
+
+        /*These make it easier to calculate a few things later on for certain shapes. Can be left to 0 depending on type*/
+        real width = 0;
+        real height = 0;
+        real depth = 0;
         
 
     public:
+        /*A unique name for identification and debugging pruposes*/
+        std::string name;
         /*Creates a new rigid body instance*/
         RigidBody();
 
@@ -114,7 +122,7 @@ class RigidBody {
          /*Adds the given force to the center of mass of the rigid body.
          Force is expressed in world coord.
          @param force The force to apply*/
-         void addForce(const Vector3 &force);
+         void addForce(const Vector3 &force, bool g=0);
 
          /*clear force and torque accumulators*/
          void clearAccumulators();
@@ -276,6 +284,36 @@ class RigidBody {
 
         /*check whether a body should be put to sleep and sleep if so*/
         void checkShouldSleep(real bias=0.8f,  real duration=0.01);
+
+        /*Set the dimensions used for calculating inertia. Most useful for rectangular objects.*/
+        void setDimension(char dimension, real value) {
+            switch(dimension){
+                case('d'):
+                    depth = value;
+                    break;
+                case('h'):
+                    height = value;
+                    break;
+                case('w'):
+                    width = value;
+                    break;
+            }
+        }
+
+        /*Set dimension in the order: depth, width, height*/
+        void setDimension(const Vector3 dimension){
+            depth = dimension.x;
+            width = dimension.y;
+            height = dimension.z;
+        }
+
+
+        real getDimension(char dimension){
+            if (dimension == 'h') return height;
+            if (dimension == 'w') return width;
+            if (dimension == 'd') return depth;
+            else return -1;
+        }
 
         /*Get orientaion and position matrix of object*/
         Matrix4 getPosandOrient() const {return state;}

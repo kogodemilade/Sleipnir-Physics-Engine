@@ -82,7 +82,7 @@ class Vector3 {
         }
     }
 
-    /*Turns a non-zero vector into a vector into a vector of unit length*/
+    /*Returns a non-zero vector into a vector into a vector of unit length*/
     Vector3 returnNormalizedVec() const{
         real l = magnitude();
         if (l>0){
@@ -112,6 +112,18 @@ class Vector3 {
         x -= v.x;
         y -= v.y;
         z -= v.z;
+    }
+
+    /*Clamp values on all dimensions between a min and max value*/
+    void clamp(real maxValue, real minValue){
+        if (x > maxValue) x == maxValue;
+        if (y > maxValue) y == maxValue;
+        if (z > maxValue) z == maxValue;
+
+        if (x < minValue) x == minValue;
+        if (y < minValue) y == minValue;
+        if (z < minValue) z == minValue;
+
     }
 
     /*Returns a copy/value of the given vector subtracted from this*/
@@ -153,7 +165,7 @@ class Vector3 {
     /**Calculates the cross product of this vector and a given vector and returns the result */
     Vector3 vectorProduct(const Vector3 &vector) const{
         return Vector3(y*vector.z - z*vector.y, 
-                       x*vector.z - z*vector.x,
+                       -x*vector.z + z*vector.x,
                        x*vector.y - y*vector.x);
     }
 
@@ -269,10 +281,15 @@ class Vector3 {
     //Returns a new matrix containing the inverse of this matrix
     Matrix3 inverse() const;
 
+    void setZero();
+
     //Inverts this matrix
     void invert() {
         setInverse(*this);
     }
+
+    //Turns this matrix into a diagonal matrix. All non-diagonal elements would be zeroed.
+    void setDiagonal(real a, real b, real c);
 
     /*Sets matrix to be transpose of given matrix*/
     void setTranspose(const Matrix3 &m);
@@ -343,6 +360,9 @@ class Matrix4 {
 
     /*Transform given vector by matrix*/
     Vector3 transform(const Vector3 &vector) const;
+
+    /*Sets this to a zero matrix*/
+    void setZero();
 
 
     //Transform the given direction vector by this matrix.

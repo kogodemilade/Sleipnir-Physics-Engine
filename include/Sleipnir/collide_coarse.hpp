@@ -54,12 +54,12 @@ class BVHNode{
     /*Checks the potential contacts from this node downward in the heirarchy, 
     writing them to the given array (up to the given limit). Returns the number 
     of potential contacts it found.*/
-    unsigned getPotentialContacts(std::vector<PotentialContact*> contacts, unsigned limit) const;
+    unsigned getPotentialContacts(std::vector<PotentialContact> &contacts, unsigned limit) const;
 
     bool overlaps(const BVHNode<BoundingVolumeClass> *other) const;
 
     unsigned getPotentialContactsWith(const BVHNode<BoundingVolumeClass> *other,
-    std::vector<PotentialContact*> contacts,
+    std::vector<PotentialContact> &contacts,
     unsigned limit) const;
 
     /*Inserts the given rigid body, with the given bounding volume, 
@@ -84,7 +84,7 @@ bool BVHNode<BoundingVolumeClass>::overlaps(const BVHNode<BoundingVolumeClass> *
 
 template<class BoundingVolumeClass>
 unsigned BVHNode<BoundingVolumeClass>::getPotentialContacts(
-    std::vector<PotentialContact*> contacts, unsigned limit) const {
+    std::vector<PotentialContact> &contacts, unsigned limit) const {
         //Early out if we don't have the room for contacts, or if we're a leaf node.
         if (isLeaf() || limit==0) return 0;
 
@@ -96,24 +96,25 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContacts(
 template<class BoundingVolumeClass>
 unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
     const BVHNode<BoundingVolumeClass> *other,
-    std::vector<PotentialContact*> contacts,
+    std::vector<PotentialContact> &contacts,
     unsigned limit) const {
 
-                //If one isn't occupied, no overlap
-        if(!(children[0]&&children[1])) return 0;
+        //If we're both at leaf nodes, then we have a potential contact.
+        //If one isn't occupied, no overlap
+        if(!((this)&&other)) return 0;
+
+        if (isLeaf() && other->isLeaf()) {
+            PotentialContact pc;
+            pc.body[0] = body;
+            pc.body[1] = other->body;
+            contacts.emplace_back(pc);
+            return 1;
+        }
+
 
 
         //Early-out if we don't overlap or if we have no room to report contacts.
         if(!overlaps(other) || limit ==0) return 0;
-
-        //If we're both at leaf nodes, then we have a potential contact.
-        if (isLeaf() && other->isLeaf()) {
-            PotentialContact *pc;
-            pc->body[0] = body;
-            pc->body[1] = other->body;
-            contacts.push_back(pc);
-            return 1;
-        }
 
         /*Determine which node to descend into. If either is a leaf, then we descend 
         the other. If both are branches, then we use the one with the largest size.*/
@@ -123,7 +124,7 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
             unsigned count = children[0]->getPotentialContactsWith(other, contacts, limit);
 
             //Check whether we have enough slots to do the other side
-            if (limit > count) {
+            if (limit > count && children[1]) {
                 return count + children[1]->getPotentialContactsWith(other, contacts, limit-count);
             } else {
                 return count;
@@ -134,7 +135,7 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
             unsigned count = getPotentialContactsWith(other->children[0], contacts, limit);
 
             //Check whether we have enough slots to do the other side too.
-            if (limit>count) {
+            if (limit>count && other->children[1]) {
                 return count + getPotentialContactsWith(other->children[1], contacts, limit-count);
             } else {return count;}
                 }

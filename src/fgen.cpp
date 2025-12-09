@@ -9,7 +9,7 @@ void Gravity::updateForce(RigidBody* body, real duration){
     if (!body->hasFiniteMass()) return;
 
     //Apply the mass-scaled force to the body
-    body->addForce(gravity * body->getMass());
+    body->addForce(gravity * body->getMass(), 1);
 }
 
 Spring::Spring(const Vector3 &localConnectionPt, RigidBody *other, const Vector3 &otherConnectionPt, real springConstant, real restLength) :
