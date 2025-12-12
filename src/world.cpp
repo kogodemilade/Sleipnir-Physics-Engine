@@ -76,6 +76,10 @@ unsigned World::fineCollision(unsigned numPotentialContacts){
     for (auto contact: potentialContacts){
         RigidBody *body0 = contact.body[0];
         RigidBody *body1 = contact.body[1];
+        if (body0->name=="Torso" && body1->name=="Left Leg"){
+            bool break_;
+            break_ = 1; //del later
+        }
 
         Primitive *body0_prim = body0->getPrimitive();
         Primitive *body1_prim = body1->getPrimitive();

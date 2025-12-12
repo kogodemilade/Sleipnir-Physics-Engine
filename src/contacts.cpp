@@ -3,7 +3,7 @@
 #include <vector>
 
 using namespace cyclone;
-
+int z = 0; //Remove later
 void ContactResolver::resolveContacts(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations, unsigned numVelocityIterations){
     /*Make sure we have something to do.*/
     if (numContacts == 0) return;
@@ -12,10 +12,11 @@ void ContactResolver::resolveContacts(std::vector<Contact> &contacts, unsigned n
      prepareContacts(contacts, numContacts, duration);
 
     /*Resolve interpenetrations first*/
-    adjustPositions(contacts, numContacts, duration, numPosIterations);
+      adjustPositions(contacts, numContacts, duration, numPosIterations, z=z);
 
     /*Resolve the velocity */
        adjustVelocities(contacts, numContacts, duration, numVelocityIterations);
+       z+=1;
 }
 
 void ContactResolver::prepareContacts(std::vector<Contact> &contacts, unsigned numContacts, real duration){
@@ -33,8 +34,10 @@ void ContactResolver::prepareContacts(std::vector<Contact> &contacts, unsigned n
     }
 }
 
-void ContactResolver::adjustPositions(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations){
+void ContactResolver::adjustPositions(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations, int z){
+    z+=1;
     unsigned positionIterations = numPosIterations;
+    std::vector<Contact> contacts_prime;
     for (unsigned j=0; j < positionIterations; j++){
         Contact* worstContact = nullptr;
         real worstPenetration = penetrationEpsilon;
@@ -42,6 +45,13 @@ void ContactResolver::adjustPositions(std::vector<Contact> &contacts, unsigned n
             if(contact.penetration > worstPenetration){
                 worstContact = &contact;
                 worstPenetration = contact.penetration;
+            }
+        }
+        /*Debugging code*/
+        //Save the original contact data
+        if (j == 0){
+            for (auto contact: contacts){
+                contacts_prime.push_back(contact);
             }
         }
         // for(Contact* contact=contacts; contact<lastContact; contact++){
@@ -60,6 +70,7 @@ void ContactResolver::adjustPositions(std::vector<Contact> &contacts, unsigned n
         //this action may have changed the penetration of other bodies, so we update contacts.
         // unsigned i=0
         for(unsigned i=0; i<numContacts;i++){
+
             Vector3 cp; //CENTER POINT
             // if(&contacts[i] == worstContact) continue;
             if(contacts[i].body[0]){ //fix code here. we've moved from raw pointers to vectors.
@@ -93,6 +104,7 @@ void ContactResolver::adjustPositions(std::vector<Contact> &contacts, unsigned n
             }
         else continue;
         }   
+
     } else break; //new addition
 }
 }
@@ -359,8 +371,8 @@ void Contact::calcDesiredDeltaVelocity(real duration){
         );
 
         //overwrite friction for now. remove later.
-        friction = 0;
-    if (planarImpulse > impulseContact.x * friction)
+        friction = 0.3;
+    if (planarImpulse > real_abs(impulseContact.x) * friction)
     {
         // We need to use dynamic friction
         impulseContact.y /= planarImpulse;
@@ -463,7 +475,7 @@ for (unsigned i=0; i<2; i++){
     /*Check if angular move is within limits*/
     if (real_abs(angularMove) > limit){
         real totalMove = linearMove + angularMove;
-        if (angularMove >=0){
+        if (angularMove >=limit){
             angularMove = limit;
         } else {
             angularMove = -limit;
@@ -471,7 +483,7 @@ for (unsigned i=0; i<2; i++){
         /*Make the linear move do the extra work*/
         linearMove = totalMove - angularMove;
     }
-    Vector3 impulsiveTorque = relativeContactPosition[0] % contactNormal;
+    Vector3 impulsiveTorque = contactNormal % relativeContactPosition[0];
     Vector3 impulsePerMove = body[0]->getInvInertiaTensorWorld().transform(impulsiveTorque);
 
     /*Multiply by inertia to get one unit of movement*/
@@ -490,7 +502,7 @@ for (unsigned i=0; i<2; i++){
     linearChange[0] = linearMoveVec;
     angularChange[0] = rotation;
     Quaternion rotQuat = rotation.toQuaternion();
-    assert((float)body[0]->getPosition().y >-0.1f && (float)body[0]->getPosition().y < 20.0f);
+    assert((float)body[0]->getPosition().y >-0.2f && (float)body[0]->getPosition().y < 20.0f);
     body[0]->updatePosition(linearMoveVec);
     body[0]->rotate(rotQuat);
 
@@ -499,7 +511,7 @@ for (unsigned i=0; i<2; i++){
     if(body[1]){
     real limit_ = angularLimitConstant * relativeContactPosition[1].magnitude();
 
-    real linearMove = penetration * linearInertia[1] * inverseInertia;
+    real linearMove2 = penetration * linearInertia[1] * inverseInertia;
     Vector3 impulsiveTorque = relativeContactPosition[1] % contactNormal;
     Vector3 impulsePerMove = body[1]->getInvInertiaTensorWorld().transform(impulsiveTorque);
 
@@ -508,14 +520,14 @@ for (unsigned i=0; i<2; i++){
 
         /*Check if angular move is within limits*/
     if (real_abs(angularMove) > limit_){
-        real totalMove_ = linearMove + angularMove;
-        if (angularMove >=0){
+        real totalMove_ = linearMove2 + angularMove;
+        if (angularMove >=limit_){
             angularMove = limit_;
         } else {
             angularMove = -limit_;
         }
         /*Make the linear move do the extra work*/
-        linearMove = totalMove_ - angularMove;
+        linearMove2 = totalMove_ - angularMove;
     }
 
     
@@ -527,19 +539,16 @@ for (unsigned i=0; i<2; i++){
     /*Multiply by angular move to get the total rotation*/
     Vector3 rotation2 = rotationPerMove*angularMove;
     Quaternion rotQuat2 = rotation2.toQuaternion();
-    if((float)body[0]->getPosition().y > 7.0f) {
-        bool _debugging_code;
-           _debugging_code = 1;
-    }
-    // assert((float)body[0]->getPosition().y >-0.001f && (float)body[0]->getPosition().y < 20.0f);
-    Vector3 linearMoveVec = contactNormal*linearMove;
-    linearMoveVec.clamp(2, -2);
+
+    assert((float)body[0]->getPosition().y >-0.2f && (float)body[0]->getPosition().y < 20.0f);
+    Vector3 linearMoveVec2 = contactNormal*linearMove2;
+    linearMoveVec2.clamp(2, -2);
     // linearMoveVec*=0.95;
-    linearChange[1] = linearMoveVec;
-    angularChange[1] = rotation;
-    body[1]->updatePosition(linearMoveVec);
+    linearChange[1] = linearMoveVec2;
+    angularChange[1] = rotation2;
+    body[1]->updatePosition(linearMoveVec2);
     body[1]->rotate(rotQuat2);
-    assert((float)body[1]->getPosition().y >-0.1f && (float)body[1]->getPosition().y < 20.0f);
+    assert((float)body[1]->getPosition().y >-0.5f && (float)body[1]->getPosition().y < 20.0f);
 
         }
 

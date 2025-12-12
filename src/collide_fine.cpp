@@ -256,9 +256,9 @@ real CollisionDetector::transformToAxis(const Box &box, const Vector3 &axis){
     real halfSizeX = box.halfSize.x * real_abs(axis*box.getAxis(0).returnNormalizedVec());
     real halfSizeY = box.halfSize.y * real_abs(axis*box.getAxis(1).returnNormalizedVec());
     real halfSizeZ =  box.halfSize.z * real_abs(axis*box.getAxis(2).returnNormalizedVec());
-    return box.halfSize.x * real_abs(axis*box.getAxis(0).returnNormalizedVec()) +
-        box.halfSize.y * real_abs(axis*box.getAxis(1).returnNormalizedVec())+
-        box.halfSize.z * real_abs(axis*box.getAxis(2).returnNormalizedVec());
+    return box.halfSize.x * real_abs(axis*box.getAxis(0)) +
+        box.halfSize.y * real_abs(axis*box.getAxis(1))+
+        box.halfSize.z * real_abs(axis*box.getAxis(2));
 }
 
 
@@ -324,15 +324,16 @@ void CollisionDetector::fillPointFaceBox(const Box &box1, const Box &box2, const
     /*We know which axis the collision is on (i.e best),
     but we need to work out which of the two faces on this axis*/
     Vector3 normal = box1.getAxis(best);
-    if (box1.getAxis(best) * centerDist > 0) {
+    if (box1.getAxis(best) * centerDist < 0) {
         normal = normal * -1.0f;
     }
 
     /*Work out which vertex of box two we're colliding with*/
     Vector3 vertex = box2.halfSize;
-    if (box2.getAxis(0) * normal < 0) vertex.x = -vertex.x;
-    if (box2.getAxis(1) * normal < 0) vertex.y = -vertex.y;
-    if (box2.getAxis(2) * normal < 0) vertex.z = -vertex.z;
+    if (box2.getAxis(0) * normal > 0) vertex.x = -vertex.x;
+    if (box2.getAxis(1) * normal > 0) vertex.y = -vertex.y;
+    if (box2.getAxis(2) * normal > 0) vertex.z = -vertex.z;
+    Vector3 contactpoint = box2.getTransform() * vertex; //Debugging reasons, delete later
 
     //Create the contact data
     contact.setData(box2.getTransform() * vertex, normal, fabs(pen), box1.body, box2.body, data->restitution, data->friction); //Points from box1 to box2 (I think?)
@@ -418,14 +419,14 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
     if(!checkOverlap(box1, box2, centerDist, box1.getAxis(2) % box2.getAxis(2), 14, pen, best)) return 0;
 
     /*Make sure we have a result*/
-    assert(best != 0xffffff);
+     assert(best != 0xffffff);
 
     /*We now know there's a collision, and we know 
     which of the axes gave the smallest penetration.
     We can now deal with it in different ways depending on the case*/
     if (best < 3) {
         //We've got a vertex of box two on a face of box one.
-        fillPointFaceBox(box1, box2, centerDist*-1.0f, data, best, pen);
+        fillPointFaceBox(box1, box2, centerDist, data, best, pen);
         data->addContacts(1);
         return 1;
     }
@@ -444,8 +445,8 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
         unsigned twoAxisIndex = best % 3;
         Vector3 oneAxis = box1.getAxis(oneAxisIndex);
         Vector3 twoAxis = box2.getAxis(twoAxisIndex);
-        Vector3 axis = oneAxis % twoAxis;
-        if (fabs(axis.magnitude()) < 0.001)  return 0;
+        Vector3 axis = twoAxis % oneAxis;
+        // if (fabs(axis.magnitude()) < 0.0001)  return 0;
         axis.normalize();
 
         //Axis should point from box one to box two.
@@ -462,10 +463,10 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
 
         for (unsigned i = 0; i < 3; i++){
             if (i == oneAxisIndex) ptOnOneEdge[i] = 0;
-            else if (box1.getAxis(i)*axis>0) ptOnOneEdge[i] = -ptOnOneEdge[i];
+            else if (box1.getAxis(i)*axis<0) ptOnOneEdge[i] = -ptOnOneEdge[i];
 
             if (i == twoAxisIndex) ptOnTwoEdge[i] = 0;
-            else if (box2.getAxis(i)*axis<0) ptOnTwoEdge[i] = -ptOnTwoEdge[i];
+            else if (box2.getAxis(i)*axis>0) ptOnTwoEdge[i] = -ptOnTwoEdge[i];
         }
 
         //Move them into world coordinates
@@ -479,7 +480,7 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
 
 
         /*We can fill the contact*/
-        Contact contact;
+         Contact contact;
         contact.setData(vertex, axis, fabs(pen), box1.body, box2.body, data->restitution, data->friction); //tbh idek about this one...
         data->contacts.push_back(std::move(contact));
 

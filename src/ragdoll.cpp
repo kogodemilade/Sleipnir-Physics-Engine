@@ -28,7 +28,7 @@ void scroll_callback(GLFWwindow *window, double xOffset, double yOffset);
 
 using namespace cyclone;
 int main(){
-World world(1000, 100);
+World world(1000, 20);
 cyclone::Gravity gravity(cyclone::Vector3(0, -9.81f, 0));
 
 //Convenience
@@ -83,10 +83,10 @@ world.addBodies(&ground, 1);
 
 //Create each body. For now, only head, torso, legs and arms.
 //Right Leg
-Vector3 rLegPos = Vector3(0,10,0);
+Vector3 rLegPos = Vector3(0,1.5,0);
 // Vector3 rLegPos = Vector3(0,10.5,0);
 Quaternion rLegOrient = Quaternion(1,0,0,0);
-RigidBody rLeg((real)100.0, rLegPos, rLegOrient, (real)3.1);
+RigidBody rLeg((real)10.0, rLegPos, rLegOrient, (real)3.1);
 rLeg.setDimension(Vector3(1,1,3));   //z,x,y ,, d,w,h
 real rLegix = rLeg.getDimension('h')*rLeg.getDimension('h') + rLeg.getDimension('d')*rLeg.getDimension('d');
 real rLegiy = rLeg.getDimension('w')*rLeg.getDimension('w') + rLeg.getDimension('d')*rLeg.getDimension('d');
@@ -113,56 +113,62 @@ rLeg.setAwake(1);
 world.addBodies(&rLeg);
 world.registry.add(&rLeg, &gravity);
 
-// //Left Leg
-// Vector3 lLegPos = Vector3(2,1.5,0);
-// Quaternion lLegOrient = Quaternion(1,0,0,0);
-// RigidBody lLeg((real)10.0, lLegPos, lLegOrient, (real)3.1);
-// lLeg.setDimension(Vector3(1,1,3));
-// real lLegix = lLeg.getDimension('h')*lLeg.getDimension('h') + lLeg.getDimension('d')*lLeg.getDimension('d');
-// real lLegiy = lLeg.getDimension('w')*lLeg.getDimension('w') + lLeg.getDimension('d')*lLeg.getDimension('d');
-// real lLegiz = lLeg.getDimension('w')*lLeg.getDimension('w') + lLeg.getDimension('h')*lLeg.getDimension('h');
 
-// Matrix3 lLegInertiaMatrix;
-// lLegInertiaMatrix.setDiagonal(lLegix, lLegiy, lLegiz);
-// lLegInertiaMatrix = lLegInertiaMatrix * (lLeg.getMass()/12);
-// lLeg.setInertiaTensor(lLegInertiaMatrix);
-// lLeg.name = "Left Leg";
-// lLeg.calculateDerivedData();
+// Left Leg
+Vector3 lLegPos = Vector3(2,1.5,0);
+Quaternion lLegOrient = Quaternion(1,0,0,0);
+RigidBody lLeg((real)10.0, lLegPos, lLegOrient, (real)3.1);
+lLeg.setDimension(Vector3(1,1,3));
+real lLegix = lLeg.getDimension('h')*lLeg.getDimension('h') + lLeg.getDimension('d')*lLeg.getDimension('d');
+real lLegiy = lLeg.getDimension('w')*lLeg.getDimension('w') + lLeg.getDimension('d')*lLeg.getDimension('d');
+real lLegiz = lLeg.getDimension('w')*lLeg.getDimension('w') + lLeg.getDimension('h')*lLeg.getDimension('h');
 
-// cyclone::Box lLegBox;
-// lLegBox.body = &lLeg;    
-// lLegBox.halfSize = Vector3(0.5, 1.5, 0.5);
-// lLegBox.bindPrimitive();
-// lLegBox.calculateInternals();
+Matrix3 lLegInertiaMatrix;
+lLegInertiaMatrix.setDiagonal(lLegix, lLegiy, lLegiz);
+lLegInertiaMatrix = lLegInertiaMatrix * (lLeg.getMass()/12);
+lLeg.setInertiaTensor(lLegInertiaMatrix);
+lLeg.name = "Left Leg";
+lLeg.setSleepEpsilon(0.02);
+lLeg.calculateDerivedData();
 
-// world.addBodies(&lLeg);
-// world.registry.add(&lLeg, &gravity);
+cyclone::Box lLegBox;
+lLegBox.body = &lLeg;    
+lLegBox.halfSize = Vector3(0.5, 1.5, 0.5);
+lLegBox.bindPrimitive();
+lLegBox.calculateInternals();
+lLeg.setAwake(1);
+
+world.addBodies(&lLeg);
+world.registry.add(&lLeg, &gravity);
 
 
-// //Torso
-// Vector3 torsoPos = Vector3(1,4.51,0);
-// Quaternion torsoOrient = Quaternion(1,0,0,0);
-// RigidBody torso((real)7, torsoPos, torsoOrient, (real)3.5);
-// torso.setDimension(Vector3(1.5,3,3)); //z,x,y
-// real torsoix = torso.getDimension('h')*torso.getDimension('h') + torso.getDimension('d')*torso.getDimension('d');
-// real torsoiy = torso.getDimension('w')*torso.getDimension('w') + torso.getDimension('d')*torso.getDimension('d');
-// real torsoiz = torso.getDimension('w')*torso.getDimension('w') + torso.getDimension('h')*torso.getDimension('h');
+//Torso
+Vector3 torsoPos = Vector3(1,4.51,0);
+Quaternion torsoOrient = Quaternion(1,0,0,0);
+RigidBody torso((real)7.0, torsoPos, torsoOrient, (real)3.5);
+torso.setDimension(Vector3(1.5,3,3)); //z,x,y
+real torsoix = torso.getDimension('h')*torso.getDimension('h') + torso.getDimension('d')*torso.getDimension('d');
+real torsoiy = torso.getDimension('w')*torso.getDimension('w') + torso.getDimension('d')*torso.getDimension('d');
+real torsoiz = torso.getDimension('w')*torso.getDimension('w') + torso.getDimension('h')*torso.getDimension('h');
 
-// Matrix3 torsoInertiaMatrix;
-// torsoInertiaMatrix.setDiagonal(torsoix, torsoiy, torsoiz);
-// torsoInertiaMatrix = torsoInertiaMatrix * (torso.getMass()/12);
-// torso.setInertiaTensor(torsoInertiaMatrix);
-// torso.name = "Torso";
-// torso.calculateDerivedData();
+Matrix3 torsoInertiaMatrix;
+torsoInertiaMatrix.setDiagonal(torsoix, torsoiy, torsoiz);
+torsoInertiaMatrix = torsoInertiaMatrix * (torso.getMass()/12);
+torso.setInertiaTensor(torsoInertiaMatrix);
+torso.name = "Torso";
+torso.calculateDerivedData();
 
-// cyclone::Box torsoBox;
-// torsoBox.body = &torso;    
-// torsoBox.halfSize = Vector3(1.5, 1.5, 0.75);
-// torsoBox.bindPrimitive();
-// torsoBox.calculateInternals();
+cyclone::Box torsoBox;
+torsoBox.body = &torso;    
+torsoBox.halfSize = Vector3(1.5, 1.5, 0.75);
 
-// world.addBodies(&torso);
-// world.registry.add(&torso, &gravity);
+torsoBox.offset = offset;
+torsoBox.bindPrimitive();
+torsoBox.calculateInternals();
+torso.setAwake(1);
+
+world.addBodies(&torso);
+world.registry.add(&torso, &gravity);
 
 
 // //Head
@@ -269,15 +275,15 @@ world.registry.add(&rLeg, &gravity);
 // // create a few demo meshes
 Ygg::Mesh floor = engine.createBox(ground.getPosition().toGlm(), ground.getOrientation().toGlm(), ground.getSize(), 0.0001f, ground.getSize(), {0.7f, 1.7f, 0.0f}); //ground
 
-Ygg::Mesh rLegMesh = engine.createBox(rLeg.getPosition().toGlm(), rLeg.getOrientation().toGlm(), rLeg.getDimension('w'), rLeg.getDimension('h'), rLeg.getDimension('d'), {1.0f, 0.1f, 0.1f}); //red
+Ygg::Mesh rLegMesh = engine.createBox(rLeg.getPosition().toGlm(), rLeg.getOrientation().toGlm(), 2.0f*rLeg.getDimension('w'), 2.0f*rLeg.getDimension('h'), 2.0f*rLeg.getDimension('d'), {1.0f, 0.1f, 0.1f}); //red
 
-// Ygg::Mesh lLegMesh = engine.createBox(lLeg.getPosition().toGlm(), lLeg.getOrientation().toGlm(), 2.0f*lLeg.getDimension('w'), 2.0f*lLeg.getDimension('h'), 2.0f*lLeg.getDimension('d'), {1.0f, 0.1f, 0.1f}); // red
+Ygg::Mesh lLegMesh = engine.createBox(lLeg.getPosition().toGlm(), lLeg.getOrientation().toGlm(), 2.0f*lLeg.getDimension('w'), 2.0f*lLeg.getDimension('h'), 2.0f*lLeg.getDimension('d'), {1.0f, 0.1f, 0.1f}); // red
 
 // Ygg::Mesh rArmMesh = engine.createBox(rArm.getPosition().toGlm(), rArm.getOrientation().toGlm(), 2.0f*rArm.getDimension('w'), 2.0f*rArm.getDimension('h'), 2.0f*rArm.getDimension('d'), {0.1f, 1.0f, 0.1f});//green
 
 // Ygg::Mesh lArmMesh = engine.createBox(lArm.getPosition().toGlm(), lArm.getOrientation().toGlm(), 2.0f*lArm.getDimension('w'), 2.0f*lArm.getDimension('h'), 2.0f*lArm.getDimension('d'), {0.1f, 1.0f, 0.1f});//green
 
-// Ygg::Mesh torsoMesh = engine.createBox(torso.getPosition().toGlm(), torso.getOrientation().toGlm(), 2.0f*torso.getDimension('w'), 2.0f*torso.getDimension('h'), 2.0f*torso.getDimension('d'), {0.1f, 0.1f, 1.0f}); // blue
+Ygg::Mesh torsoMesh = engine.createBox(torso.getPosition().toGlm(), torso.getOrientation().toGlm(), 2.0f*torso.getDimension('w'), 2.0f*torso.getDimension('h'), 2.0f*torso.getDimension('d'), {0.1f, 0.1f, 1.0f}); // blue
 
 // Ygg::Mesh headMesh = engine.createBox(head.getPosition().toGlm(), head.getOrientation().toGlm(), 2.0f*head.getDimension('w'), 2.0f*head.getDimension('h'), 2.0f*head.getDimension('d'), {1.0f, .0f, 1.0f}); //White
 
@@ -294,12 +300,12 @@ while(!glfwWindowShouldClose(window)){
     lastTime = now;
 
     world.startFrame();
-    // world.runPhysics(0.01);
-    if( (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)){
-             world.runPhysics(0.01);
-        for (auto b: world.rigidBodies){
-        std::cout << "iteration: " << i*0.01 << "secs\n";
-        std::cout<<"Body: "<<b->name<<std::endl;
+    world.runPhysics(0.01);
+    // if( (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)){
+            //  world.runPhysics(0.01);
+    for (auto b: world.rigidBodies){
+    std::cout << "iteration: " << i*0.01 << "secs\n";
+    std::cout<<"Body: "<<b->name<<std::endl;
     std::cout << "Position: x=" << b->getPosition().x
                 << " y=" << b->getPosition().y << " z="<<b->getPosition().z << "\n";
     std::cout << "Velocity: x=" << b->getVelocity().x
@@ -313,7 +319,7 @@ while(!glfwWindowShouldClose(window)){
     // std::cout << "\n\n\n\n";
         std::cout<<"\n\n\n";
     }
-}
+// }
 
 
     /*Start rendering code*/
@@ -327,10 +333,10 @@ while(!glfwWindowShouldClose(window)){
     glm::mat4 view = cam.getViewMatrix();
     engine.drawMesh(floor, view, projection, cam.getCameraPos(), floor.model);
     engine.drawMesh(rLegMesh, view, projection, cam.getCameraPos(), rLeg.getPosandOrient().toGlm());
-    // engine.drawMesh(lLegMesh, view, projection, cam.getCameraPos(), lLeg.getPosandOrient().toGlm());
+    engine.drawMesh(lLegMesh, view, projection, cam.getCameraPos(), lLeg.getPosandOrient().toGlm());
     // engine.drawMesh(rArmMesh, view, projection, cam.getCameraPos(), rArm.getPosandOrient().toGlm());
     // engine.drawMesh(lArmMesh, view, projection, cam.getCameraPos(), lArm.getPosandOrient().toGlm());
-    // engine.drawMesh(torsoMesh, view, projection, cam.getCameraPos(), torso.getPosandOrient().toGlm());
+    engine.drawMesh(torsoMesh, view, projection, cam.getCameraPos(), torso.getPosandOrient().toGlm());
     // engine.drawMesh(headMesh, view, projection, cam.getCameraPos(), head.getPosandOrient().toGlm());
 
 
@@ -346,7 +352,7 @@ while(!glfwWindowShouldClose(window)){
 
 
 
-    if (i == 376){
+    if (i == (int)0.66*100){
         unsigned _dosmth;
         _dosmth += 1; //Dummy code for some debugging
     }

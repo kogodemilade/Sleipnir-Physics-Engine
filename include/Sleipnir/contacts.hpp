@@ -146,7 +146,7 @@ class ContactResolver {
     void prepareContacts(std::vector<Contact> &contacts, unsigned numContacts, real duration);
 
     /*Fixes interpenetration*/
-    void adjustPositions(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations);
+    void adjustPositions(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numPosIterations, int z);
 
     /*Adjusts the velocities of colliding objects*/
     void adjustVelocities(std::vector<Contact> &contacts, unsigned numContacts, real duration, unsigned numVelocityPositions);

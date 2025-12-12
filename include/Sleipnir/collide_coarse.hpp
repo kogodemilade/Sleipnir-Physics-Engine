@@ -87,9 +87,22 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContacts(
     std::vector<PotentialContact> &contacts, unsigned limit) const {
         //Early out if we don't have the room for contacts, or if we're a leaf node.
         if (isLeaf() || limit==0) return 0;
+        int count = 0;
+    // --- 1. INTRA-BRANCH CHECKS (Recursive Descent) ---
+    // Check for collisions contained entirely within the LEFT subtree
+    if (children[0]) {
+        count += children[0]->getPotentialContacts(contacts, limit - count);
+    }
+    
+    // Check for collisions contained entirely within the RIGHT subtree (if room allows)
+    if (limit > count && children[1]) {
+        count += children[1]->getPotentialContacts(contacts, limit - count);
+    }
 
-        //Get the potential contacts of one of our children with the other
-        return children[0]->getPotentialContactsWith(children[1], contacts, limit);
+    if (limit > count && children[0] && children[1]) {
+        count += children[0]->getPotentialContactsWith(children[1], contacts, limit - count);
+    }
+    return count;
     }
 
 
@@ -98,11 +111,12 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
     const BVHNode<BoundingVolumeClass> *other,
     std::vector<PotentialContact> &contacts,
     unsigned limit) const {
+// 1. Early-out if no room or no overlap
+        if (limit == 0 || !overlaps(other)) return 0;
+        
+        unsigned count = 0;
 
-        //If we're both at leaf nodes, then we have a potential contact.
-        //If one isn't occupied, no overlap
-        if(!((this)&&other)) return 0;
-
+        // 2. Base Case: If both are leaves AND they overlap, register contact.
         if (isLeaf() && other->isLeaf()) {
             PotentialContact pc;
             pc.body[0] = body;
@@ -111,34 +125,30 @@ unsigned BVHNode<BoundingVolumeClass>::getPotentialContactsWith(
             return 1;
         }
 
+        /* 3. Recursive Step: Determine which node to descend into. 
+           Descend into the node with the largest volume first to prune space faster. */
+        
+        // Descend Ourself vs Other (A vs B)
+        if (other->isLeaf() || (!isLeaf() && volume.getSize() >= other->volume.getSize())) {
+            
+            // Recurse: children[0] vs other
+            count = children[0]->getPotentialContactsWith(other, contacts, limit);
 
-
-        //Early-out if we don't overlap or if we have no room to report contacts.
-        if(!overlaps(other) || limit ==0) return 0;
-
-        /*Determine which node to descend into. If either is a leaf, then we descend 
-        the other. If both are branches, then we use the one with the largest size.*/
-        if (other->isLeaf() ||
-        (!isLeaf() && volume.getSize() >= other->volume.getSize())) {
-            //Recurse into ourself. 
-            unsigned count = children[0]->getPotentialContactsWith(other, contacts, limit);
-
-            //Check whether we have enough slots to do the other side
+            // Recurse: children[1] vs other (if room remains)
             if (limit > count && children[1]) {
-                return count + children[1]->getPotentialContactsWith(other, contacts, limit-count);
-            } else {
-                return count;
+                count += children[1]->getPotentialContactsWith(other, contacts, limit - count);
             }
         }
         else {
-            //recurse into the other node
-            unsigned count = getPotentialContactsWith(other->children[0], contacts, limit);
+            // Recurse: this vs other->children[0]
+            count = getPotentialContactsWith(other->children[0], contacts, limit);
 
-            //Check whether we have enough slots to do the other side too.
-            if (limit>count && other->children[1]) {
-                return count + getPotentialContactsWith(other->children[1], contacts, limit-count);
-            } else {return count;}
-                }
+            // Recurse: this vs other->children[1] (if room remains)
+            if (limit > count && other->children[1]) {
+                count += getPotentialContactsWith(other->children[1], contacts, limit - count);
+            }
+        }
+        return count;
 }
 
 

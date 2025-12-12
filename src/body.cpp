@@ -307,14 +307,14 @@ void RigidBody::setCanSleep(bool sleepable){
 
 void RigidBody::checkShouldSleep(real _bias, real duration){
     /* A mass-independent approximation of total kinetic energy the body experiencex*/
-       real currentMotion = velocity.scalarProduct(velocity) + rotation.scalarProduct(rotation);
-
+    real currentMotion = velocity.scalarProduct(velocity) + rotation.scalarProduct(rotation);
+    currentMotion += 0.07* fabs(position.y-size);
     /*Recency weighted average for a rolling average of the motion (or energy)*/
     // real bias = real_pow(_bias, duration);
     real bias = _bias;
     motion = bias*currentMotion + (1-bias)*motion;
 
-    if (motion > 100*sleepEpsilon) motion = 100*sleepEpsilon;
+    if (motion > 10*sleepEpsilon) motion = 10*sleepEpsilon;
     
        if (motion < sleepEpsilon && isAwake){
         setAwake(false);
