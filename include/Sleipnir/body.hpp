@@ -276,6 +276,9 @@ class RigidBody {
         /*Check whether an object is asleep*/
         bool getState() const;
 
+        /*Set objects state*/
+        void setState(bool state_);
+
         /*Getter method for canSleeo*/
         bool getCanSleep() const;
 

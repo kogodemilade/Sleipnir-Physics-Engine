@@ -28,7 +28,7 @@ void scroll_callback(GLFWwindow *window, double xOffset, double yOffset);
 
 using namespace cyclone;
 int main(){
-World world(1000, 20);
+World world(1000, 1000);
 cyclone::Gravity gravity(cyclone::Vector3(0, -9.81f, 0));
 
 //Convenience
@@ -70,6 +70,7 @@ cyclone::Matrix3 groundTensor;
 groundTensor.setComponents(groundInertiaX, groundInertiaY, groundInertiaZ);
 ground.setInvInertiaTensor(groundTensor);
 ground.name = "ground"; //Change to getter/setter
+ground.setState(0);
 ground.calculateDerivedData();
 
 cyclone::Plane groundPlane;
@@ -171,30 +172,31 @@ world.addBodies(&torso);
 world.registry.add(&torso, &gravity);
 
 
-// //Head
-// Vector3 headPos = Vector3(1,6.51,0);
-// Quaternion headOrient = Quaternion(1,0,0,0);
-// RigidBody head((real)3.0, headPos, headOrient, (real)1.2);
-// head.setDimension(Vector3(1,1,1));
-// real headix = head.getDimension('h')*head.getDimension('h') + head.getDimension('d')*head.getDimension('d');
-// real headiy = head.getDimension('w')*head.getDimension('w') + head.getDimension('d')*head.getDimension('d');
-// real headiz = head.getDimension('w')*head.getDimension('w') + head.getDimension('h')*head.getDimension('h');
+//Head
+Vector3 headPos = Vector3(1,6.51,0);
+Quaternion headOrient = Quaternion(1,0,0,0);
+RigidBody head((real)3.0, headPos, headOrient, (real)1.2);
+head.setDimension(Vector3(1,1,1));
+real headix = head.getDimension('h')*head.getDimension('h') + head.getDimension('d')*head.getDimension('d');
+real headiy = head.getDimension('w')*head.getDimension('w') + head.getDimension('d')*head.getDimension('d');
+real headiz = head.getDimension('w')*head.getDimension('w') + head.getDimension('h')*head.getDimension('h');
 
-// Matrix3 headInertiaMatrix;
-// headInertiaMatrix.setDiagonal(headix, headiy, headiz);
-// headInertiaMatrix = headInertiaMatrix * (head.getMass()/12);
-// head.setInertiaTensor(headInertiaMatrix);
-// head.name = "Head";
-// head.calculateDerivedData();
+Matrix3 headInertiaMatrix;
+headInertiaMatrix.setDiagonal(headix, headiy, headiz);
+headInertiaMatrix = headInertiaMatrix * (head.getMass()/12);
+head.setInertiaTensor(headInertiaMatrix);
+head.name = "Head";
+head.setAwake(1);
+head.calculateDerivedData();
 
-// cyclone::Box headBox;
-// headBox.body = &head;    
-// headBox.halfSize = Vector3(0.5, 0.5, 0.5);
-// headBox.bindPrimitive();
-// headBox.calculateInternals();
+cyclone::Box headBox;
+headBox.body = &head;    
+headBox.halfSize = Vector3(0.5, 0.5, 0.5);
+headBox.bindPrimitive();
+headBox.calculateInternals();
 
-// world.addBodies(&head);
-// world.registry.add(&head, &gravity);
+world.addBodies(&head);
+world.registry.add(&head, &gravity);
 
 
 // //rArm
@@ -252,9 +254,9 @@ world.registry.add(&torso, &gravity);
 
 
 //Create Joints
-// PositionJoint lLegtoTorso(&lLeg, &torso, Vector3( 0, 1.5 ,0), Vector3(1, -1.5 , 0), 0.002);
+PositionJoint lLegtoTorso(&lLeg, &torso, Vector3( 0, 1.5 ,0), Vector3(1, -1.5 , 0), 0.002);
 
-// PositionJoint rLegtoTorso(&rLeg, &torso, Vector3( 0, 1.5 ,0), Vector3(-1, -1.5 , 0), 0.002);
+PositionJoint rLegtoTorso(&rLeg, &torso, Vector3( 0, 1.5 ,0), Vector3(-1, -1.5 , 0), 0.002);
 
 // PositionJoint lArmToTorso(&lArm, &torso, Vector3(-1, 0, 0), Vector3(1.5, 1, 0), 0.002);
 
@@ -262,8 +264,8 @@ world.registry.add(&torso, &gravity);
 
 // PositionJoint headtoTorso(&head, &torso, Vector3(0, -0.5, 0), Vector3(0, 1.5, 0), 0.002);
 
-// world.addContactGenerator(&lLegtoTorso);
-// world.addContactGenerator(&rLegtoTorso);
+world.addContactGenerator(&lLegtoTorso);
+world.addContactGenerator(&rLegtoTorso);
 // world.addContactGenerator(&lArmToTorso);
 // world.addContactGenerator(&rArmToTorso);
 // world.addContactGenerator(&headtoTorso);
@@ -285,7 +287,7 @@ Ygg::Mesh lLegMesh = engine.createBox(lLeg.getPosition().toGlm(), lLeg.getOrient
 
 Ygg::Mesh torsoMesh = engine.createBox(torso.getPosition().toGlm(), torso.getOrientation().toGlm(), 2.0f*torso.getDimension('w'), 2.0f*torso.getDimension('h'), 2.0f*torso.getDimension('d'), {0.1f, 0.1f, 1.0f}); // blue
 
-// Ygg::Mesh headMesh = engine.createBox(head.getPosition().toGlm(), head.getOrientation().toGlm(), 2.0f*head.getDimension('w'), 2.0f*head.getDimension('h'), 2.0f*head.getDimension('d'), {1.0f, .0f, 1.0f}); //White
+Ygg::Mesh headMesh = engine.createBox(head.getPosition().toGlm(), head.getOrientation().toGlm(), 2.0f*head.getDimension('w'), 2.0f*head.getDimension('h'), 2.0f*head.getDimension('d'), {1.0f, .0f, 1.0f}); //White
 
 static Ygg::Line thread = engine.createLine();
 
@@ -300,7 +302,7 @@ while(!glfwWindowShouldClose(window)){
     lastTime = now;
 
     world.startFrame();
-    world.runPhysics(0.01);
+    world.runPhysics(0.008);
     // if( (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)){
             //  world.runPhysics(0.01);
     for (auto b: world.rigidBodies){
@@ -337,7 +339,7 @@ while(!glfwWindowShouldClose(window)){
     // engine.drawMesh(rArmMesh, view, projection, cam.getCameraPos(), rArm.getPosandOrient().toGlm());
     // engine.drawMesh(lArmMesh, view, projection, cam.getCameraPos(), lArm.getPosandOrient().toGlm());
     engine.drawMesh(torsoMesh, view, projection, cam.getCameraPos(), torso.getPosandOrient().toGlm());
-    // engine.drawMesh(headMesh, view, projection, cam.getCameraPos(), head.getPosandOrient().toGlm());
+    engine.drawMesh(headMesh, view, projection, cam.getCameraPos(), head.getPosandOrient().toGlm());
 
 
     // glm::vec3 p1 = anchor.getPosition().toGlm();
@@ -358,7 +360,7 @@ while(!glfwWindowShouldClose(window)){
     }
 
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     i++;
 

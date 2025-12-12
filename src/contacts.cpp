@@ -25,12 +25,7 @@ void ContactResolver::prepareContacts(std::vector<Contact> &contacts, unsigned n
     for (auto &contact : contacts){
         /*Calculate the internal contact data (inertia, basis, etc)*/
         contact.calculateInternals(duration);
-
-        /*Conditional breakpoint, remove later*/
-        if (contact.body[1]->getSize() == 20.0f){
-            bool _break; //Placeholder to put the actual breakpoint
-            _break = 1;
-        }
+        // contact.penetration *= 0.7;
     }
 }
 
@@ -49,7 +44,7 @@ void ContactResolver::adjustPositions(std::vector<Contact> &contacts, unsigned n
         }
         /*Debugging code*/
         //Save the original contact data
-        if (j == 0){
+        if (j == 999){
             for (auto contact: contacts){
                 contacts_prime.push_back(contact);
             }
@@ -124,7 +119,7 @@ void ContactResolver::adjustVelocities(std::vector<Contact> &contacts, unsigned 
 
         if (!worstContact) break;
         worstContact->matchAwakeState();
-         worstContact->applyImpulse();
+         worstContact->applyImpulse(duration);
 
         /*This may have changed the closing velocities of other bodies*/
           for(unsigned i=0; i<numContacts;i++){
@@ -310,10 +305,13 @@ void Contact::calcDesiredDeltaVelocity(real duration){
 
 }
 
-   void Contact::calcImpulse(){
+   void Contact::calcImpulse(real duration){
     /*Build a matrix that shows the change in veloocity in world 
     space for a unit imp in dir of contact norm. 
     The equivalent of cross product between vectors is multiplication by a skew matrix*/
+    real baumgarte = 0.2f;
+    real biasFactor = baumgarte/duration;
+    real bias = biasFactor * penetration;
     Matrix3 impulseToTorque = relativeContactPosition[0].skewSymmetricMatrix();
 
     Matrix3 deltaVelWorld = impulseToTorque;
@@ -349,6 +347,8 @@ void Contact::calcDesiredDeltaVelocity(real duration){
     Matrix3 deltaVelocity = contactToWorld.transpose() * deltaVelWorld;
     deltaVelocity *= contactToWorld;
 
+    inverseMass = inverseMass;
+
     deltaVelocity.data[0] += inverseMass;
     deltaVelocity.data[4] += inverseMass;
     deltaVelocity.data[8] += inverseMass;
@@ -358,7 +358,7 @@ void Contact::calcDesiredDeltaVelocity(real duration){
 
     /*Find target velocities to kill*/
     // Vector3 velKill(desiredDeltaVelocity-contactVelocity.x, -contactVelocity.y, -contactVelocity.z);
-    Vector3 velKill(desiredDeltaVelocity, -contactVelocity.y, -contactVelocity.z);
+    Vector3 velKill(desiredDeltaVelocity, contactVelocity.y, contactVelocity.z);
 
     //Find the impulse to kill target velocities
       impulseContact = impulseMatrix.transform(velKill);
@@ -371,7 +371,7 @@ void Contact::calcDesiredDeltaVelocity(real duration){
         );
 
         //overwrite friction for now. remove later.
-        friction = 0.3;
+        friction = 0;
     if (planarImpulse > real_abs(impulseContact.x) * friction)
     {
         // We need to use dynamic friction
@@ -389,8 +389,8 @@ void Contact::calcDesiredDeltaVelocity(real duration){
      impulse = contactToWorld.transform(impulseContact);
 }
 
-void Contact::applyImpulse(){
-         calcImpulse();
+void Contact::applyImpulse(real duration){
+         calcImpulse(duration);
     assert(impulse.x == impulse.x);
     assert(impulse.y == impulse.y);
     assert(impulse.z == impulse.z);

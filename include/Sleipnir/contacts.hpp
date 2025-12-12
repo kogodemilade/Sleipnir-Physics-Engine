@@ -106,7 +106,7 @@ class Contact {
         void calculateContactBasis();
 
         /*Calculate The size of impulse*/
-        void calcImpulse();
+        void calcImpulse(real duration);
         
         /*Calculates the contact velocity and updates the contactVelocity member*/
         void calcContactVelocity(real duration);
@@ -115,7 +115,7 @@ class Contact {
         void calcDesiredDeltaVelocity(real duration);
 
         /*Applies the change in angular and linear velocities.*/
-        void applyImpulse();
+        void applyImpulse(real duration);
 
         /*Calculates the relative positions of the contact point 
         to each body and updates the relativeContactPosition data member*/
@@ -132,8 +132,8 @@ class Contact {
 
 /*The contact resolution routine. One resolver instance can be shared for the whole simulation*/
 class ContactResolver {
-    real penetrationEpsilon = 0.01;
-    real velocityEpsilon = 0.01;
+    real penetrationEpsilon = 0.001;
+    real velocityEpsilon = 0.001;
     unsigned iterations = 1000;
     public:
 

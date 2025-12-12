@@ -297,6 +297,10 @@ bool RigidBody::getState() const{
     return isAwake;
 }
 
+void RigidBody::setState(bool state_){
+    isAwake = state_;
+}
+
 bool RigidBody::getCanSleep() const{
     return canSleep;
 }
