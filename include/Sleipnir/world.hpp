@@ -64,6 +64,10 @@ class World {
 
     unsigned iterations;
 
+    const real fixedTimeStep = 1.0f / 120.0f; 
+
+    real timeAccumulator = 0;
+
     //Plane
     RigidBody* plane;
 

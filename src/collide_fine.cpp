@@ -36,12 +36,12 @@ unsigned CollisionDetector::sphereAndSphere(Sphere &one, Sphere &two, CollisionD
     two.calculateInternals();
 
     //Cache the sphere positions
-    Vector3 positionOne = one.getAxis(3);
-    Vector3 positionTwo = two.getAxis(3); 
+    cyclone::Vector3 positionOne = one.getAxis(3);
+    cyclone::Vector3 positionTwo = two.getAxis(3); 
 
 
     //Find the vector between the objects
-    Vector3 midline = positionTwo - positionOne; //Since the normalized midline acts as the contact's normal, we do pos2-1 to get the direction pointing from 1 to 2
+    cyclone::Vector3 midline = positionTwo - positionOne; //Since the normalized midline acts as the contact's normal, we do pos2-1 to get the direction pointing from 1 to 2
     real size = midline.magnitude();
 
     /*see if large enough.*/
@@ -50,12 +50,12 @@ unsigned CollisionDetector::sphereAndSphere(Sphere &one, Sphere &two, CollisionD
     }
 
     //We create the normal
-    Vector3 normal = midline;
+    cyclone::Vector3 normal = midline;
     normal.normalize();
 
     Contact contact;
     // contact.contactNormal = normal;
-    Vector3 contactPoint = positionOne + midline*(real)0.5;
+    cyclone::Vector3 contactPoint = positionOne + midline*(real)0.5;
     real pen = fabs(one.radius+two.radius - size);
 
     //Write the apprpriate data (commented out next 4 lines instead of deletion for debugging purposes. they've been replaced by the setData method.)
@@ -82,7 +82,7 @@ unsigned CollisionDetector::sphereAndHalfSpace( Sphere &sphere,  Plane &plane, C
     plane.calculateInternals();
 
     //cache sphere pos
-    Vector3 pos = sphere.getAxis(3);
+    cyclone::Vector3 pos = sphere.getAxis(3);
 
     //find distance from plane
     real ballDistance = plane.normal*pos - sphere.radius - plane.offset;
@@ -115,7 +115,7 @@ unsigned CollisionDetector::sphereAndTruePlane(Sphere &sphere,
         sphere.calculateInternals();
         plane.calculateInternals();
         //Cache the sphere position.
-        Vector3 pos = sphere.getAxis(3);
+        cyclone::Vector3 pos = sphere.getAxis(3);
 
         //Find the distance from the plane.
         real centerDistance = plane.normal * pos - plane.offset;
@@ -124,7 +124,7 @@ unsigned CollisionDetector::sphereAndTruePlane(Sphere &sphere,
         if (centerDistance*centerDistance > sphere.radius*sphere.radius) return 0;
 
         //Check which side of plane we're on
-        Vector3 normal = plane.normal;
+        cyclone::Vector3 normal = plane.normal;
         real penetration = centerDistance;
         if (centerDistance < 0) {
             normal *= -1;
@@ -154,37 +154,35 @@ unsigned CollisionDetector::sphereAndTruePlane(Sphere &sphere,
 unsigned CollisionDetector::boxAndHalfSpace(Box &box, Plane &plane, CollisionData *data){
     box.calculateInternals();
     plane.calculateInternals();
-    Vector3 halfSize = box.halfSize;
-    Vector3 vertices[8] = {
-        Vector3(-halfSize.x, -halfSize.y, -halfSize.z),
-        Vector3(-halfSize.x, -halfSize.y, +halfSize.z),
-        Vector3(-halfSize.x, +halfSize.y, -halfSize.z),
-        Vector3(+halfSize.x, -halfSize.y, -halfSize.z),
-        Vector3(-halfSize.x, +halfSize.y, +halfSize.z),
-        Vector3(+halfSize.x, -halfSize.y, +halfSize.z),
-        Vector3(+halfSize.x, +halfSize.y, -halfSize.z),
-        Vector3(+halfSize.x, +halfSize.y, +halfSize.z)
+    cyclone::Vector3 halfSize = box.halfSize;
+    cyclone::Vector3 vertices[8] = {
+        cyclone::Vector3(-halfSize.x, -halfSize.y, -halfSize.z),
+        cyclone::Vector3(-halfSize.x, -halfSize.y, +halfSize.z),
+        cyclone::Vector3(-halfSize.x, +halfSize.y, -halfSize.z),
+        cyclone::Vector3(+halfSize.x, -halfSize.y, -halfSize.z),
+        cyclone::Vector3(-halfSize.x, +halfSize.y, +halfSize.z),
+        cyclone::Vector3(+halfSize.x, -halfSize.y, +halfSize.z),
+        cyclone::Vector3(+halfSize.x, +halfSize.y, -halfSize.z),
+        cyclone::Vector3(+halfSize.x, +halfSize.y, +halfSize.z)
     };
 
     unsigned contactsUsed = 0;
     Contact contact;
     for(auto vertex: vertices){
         // vertex = box.offset*vertex;
-        Vector3 vertexPos = box.getTransform().transform(vertex);
+        cyclone::Vector3 vertexPos = box.getTransform().transform(vertex);
 
 
         /*Calculate rhe distance from the plane.*/
-        real vertexDist = vertexPos * plane.normal;
+        real vertexDist = vertexPos * plane.normal - plane.offset;
 
         /*Compare to plane's distance*/
-        if (vertexDist <= plane.offset - data->tolerance) {
+        if (vertexDist <= data->tolerance) {
             //Create the conteact data
             /*The contact point is halfway between the vertex and the plane. 
             We multiply the direction by half the separation distance and 
             add the vertex location.*/
-            Vector3 contactPoint = plane.normal;
-            contactPoint *= (vertexDist - plane.offset);
-            contactPoint += vertexPos;
+            cyclone::Vector3 contactPoint = vertexPos - plane.normal * vertexDist;
             real penetration = fabs(plane.offset - vertexDist);
 
             contact.setData(contactPoint, plane.normal, penetration, plane.body, box.body, data->restitution, data->friction); //points from plane to box
@@ -206,13 +204,13 @@ unsigned CollisionDetector::boxAndSphere(Box &box, Sphere &sphere, CollisionData
     box.calculateInternals();
     sphere.calculateInternals();
     //Transform sphere center in world coordinates to box's local coordinates
-    Vector3 center = sphere.getAxis(3);
-    Vector3 relCenter = box.getTransform().transformInverse(center);
+    cyclone::Vector3 center = sphere.getAxis(3);
+    cyclone::Vector3 relCenter = box.getTransform().transformInverse(center);
 
     if (real_abs(relCenter.x) - sphere.radius > box.halfSize.x || real_abs(relCenter.y)
          - sphere.radius > box.halfSize.y || real_abs(relCenter.z) - sphere.radius > box.halfSize.z) return 0;
     
-    Vector3 closestPt(0,0,0);
+    cyclone::Vector3 closestPt(0,0,0);
     real dist;
 
     //Clamp each coordinate to the box.
@@ -236,8 +234,8 @@ unsigned CollisionDetector::boxAndSphere(Box &box, Sphere &sphere, CollisionData
     if (dist > sphere.radius *sphere.radius) return 0;
 
     //Compile the contact (transform back to world coordinates)
-    Vector3 closestPtWorld = box.getTransform().transform(closestPt);
-    Vector3 contactNormal = (center-closestPtWorld); //body1 - body0, sphere - box
+    cyclone::Vector3 closestPtWorld = box.getTransform().transform(closestPt);
+    cyclone::Vector3 contactNormal = (center-closestPtWorld); //body1 - body0, sphere - box
     contactNormal.normalize();
     real penetration = fabs(sphere.radius - real_sqrt(dist));
 
@@ -251,8 +249,8 @@ unsigned CollisionDetector::boxAndSphere(Box &box, Sphere &sphere, CollisionData
 }
 
 
-real CollisionDetector::transformToAxis(const Box &box, const Vector3 &axis){
-    Vector3 axis0 = box.getAxis(0).returnNormalizedVec();
+real CollisionDetector::transformToAxis(const Box &box, const cyclone::Vector3 &axis){
+    cyclone::Vector3 axis0 = box.getAxis(0).returnNormalizedVec();
     real halfSizeX = box.halfSize.x * real_abs(axis*box.getAxis(0).returnNormalizedVec());
     real halfSizeY = box.halfSize.y * real_abs(axis*box.getAxis(1).returnNormalizedVec());
     real halfSizeZ =  box.halfSize.z * real_abs(axis*box.getAxis(2).returnNormalizedVec());
@@ -262,13 +260,13 @@ real CollisionDetector::transformToAxis(const Box &box, const Vector3 &axis){
 }
 
 
-bool CollisionDetector::overlapOnAxis(const Box &box1, const Box &box2, const Vector3 &axis){ //Never actually used
+bool CollisionDetector::overlapOnAxis(const Box &box1, const Box &box2, const cyclone::Vector3 &axis){ //Never actually used
     /*Project the half-size of one onto axis.*/
     real oneProject = transformToAxis(box1, axis);
     real twoProject = transformToAxis(box2, axis);
 
     /*Find the vector between the two centers*/
-    Vector3 toCenter = box2.getAxis(3) - box1.getAxis(3);
+    cyclone::Vector3 toCenter = box2.getAxis(3) - box1.getAxis(3);
 
     /*Project this onto the axis*/
     real dist = real_abs(toCenter*axis);
@@ -278,7 +276,7 @@ bool CollisionDetector::overlapOnAxis(const Box &box1, const Box &box2, const Ve
 }
 
 
-real CollisionDetector::penetrationOnAxis(const Box &one, const Box &two, const Vector3 &axis, const Vector3 &centerDist) {
+real CollisionDetector::penetrationOnAxis(const Box &one, const Box &two, const cyclone::Vector3 &axis, const cyclone::Vector3 &centerDist) {
     //Project the half-size of one onto axis
     real oneProject = transformToAxis(one, axis);
     real twoProject = transformToAxis(two, axis);
@@ -291,7 +289,7 @@ real CollisionDetector::penetrationOnAxis(const Box &one, const Box &two, const 
 }
 
 
-bool CollisionDetector::tryAxis(const Box &one, const Box &two, Vector3 axis, const Vector3 &centerDist, 
+bool CollisionDetector::tryAxis(const Box &one, const Box &two, cyclone::Vector3 axis, const cyclone::Vector3 &centerDist, 
     unsigned index, real& smallestPenetration, unsigned &smallestCase){ //Use reference for real and unsigned because we're modifying them.
         //Make sure we have a normalized axis, and don't check almost parallel axes.
         if (axis.squareMagnitude() < 0.0001) return 1;
@@ -312,28 +310,28 @@ bool CollisionDetector::tryAxis(const Box &one, const Box &two, Vector3 axis, co
 }
 
 //TODO: This may be useless. Review in future
-unsigned CollisionDetector::checkOverlap(const Box& box1, const Box& box2, const Vector3& centerDist, Vector3 axis, unsigned index, real &pen, unsigned &best){
+unsigned CollisionDetector::checkOverlap(const Box& box1, const Box& box2, const cyclone::Vector3& centerDist, cyclone::Vector3 axis, unsigned index, real &pen, unsigned &best){
     if (!tryAxis(box1, box2, axis, centerDist, index, pen, best)) return 0;
     return 1;
 }
 
 
-void CollisionDetector::fillPointFaceBox(const Box &box1, const Box &box2, const Vector3 &centerDist, CollisionData *data, unsigned best, real pen){
+void CollisionDetector::fillPointFaceBox(const Box &box1, const Box &box2, const cyclone::Vector3 &centerDist, CollisionData *data, unsigned best, real pen){
     Contact contact;
 
     /*We know which axis the collision is on (i.e best),
     but we need to work out which of the two faces on this axis*/
-    Vector3 normal = box1.getAxis(best);
+    cyclone::Vector3 normal = box1.getAxis(best);
     if (box1.getAxis(best) * centerDist < 0) {
         normal = normal * -1.0f;
     }
 
     /*Work out which vertex of box two we're colliding with*/
-    Vector3 vertex = box2.halfSize;
+    cyclone::Vector3 vertex = box2.halfSize;
     if (box2.getAxis(0) * normal > 0) vertex.x = -vertex.x;
     if (box2.getAxis(1) * normal > 0) vertex.y = -vertex.y;
     if (box2.getAxis(2) * normal > 0) vertex.z = -vertex.z;
-    Vector3 contactpoint = box2.getTransform() * vertex; //Debugging reasons, delete later
+    cyclone::Vector3 contactpoint = box2.getTransform() * vertex; //Debugging reasons, delete later
 
     //Create the contact data
     contact.setData(box2.getTransform() * vertex, normal, fabs(pen), box1.body, box2.body, data->restitution, data->friction); //Points from box1 to box2 (I think?)
@@ -341,10 +339,10 @@ void CollisionDetector::fillPointFaceBox(const Box &box1, const Box &box2, const
 }
 
 
-Vector3 contactPoint(
-    const Vector3 &pOne, const Vector3 &dOne, real oneSize, const Vector3 &pTwo, const Vector3 &dTwo, real twoSize,
+cyclone::Vector3 contactPoint(
+    const cyclone::Vector3 &pOne, const cyclone::Vector3 &dOne, real oneSize, const cyclone::Vector3 &pTwo, const cyclone::Vector3 &dTwo, real twoSize,
     /*If true, and contact point is outside edge, then we use one's midpooint. otherwise we use two*/ bool useOne){
-        Vector3 toSt, cOne, cTwo;
+        cyclone::Vector3 toSt, cOne, cTwo;
         real dpStaOne, dpStaTwo, dpOneTwo, smOne, smTwo;
         real denom, mua, mub;
 
@@ -384,7 +382,7 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
     box1.calculateInternals();
     box2.calculateInternals();
     //Find the vector between two centres
-    Vector3 centerDist = box2.getAxis(3) - box1.getAxis(3);
+    cyclone::Vector3 centerDist = box2.getAxis(3) - box1.getAxis(3);
 
     //We start assuming there is no contact
     real pen = REAL_MAX;
@@ -443,9 +441,9 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
         best -= 6;
         unsigned oneAxisIndex = best / 3; //TODO: Check this
         unsigned twoAxisIndex = best % 3;
-        Vector3 oneAxis = box1.getAxis(oneAxisIndex);
-        Vector3 twoAxis = box2.getAxis(twoAxisIndex);
-        Vector3 axis = twoAxis % oneAxis;
+        cyclone::Vector3 oneAxis = box1.getAxis(oneAxisIndex);
+        cyclone::Vector3 twoAxis = box2.getAxis(twoAxisIndex);
+        cyclone::Vector3 axis = twoAxis % oneAxis;
         // if (fabs(axis.magnitude()) < 0.0001)  return 0;
         axis.normalize();
 
@@ -458,8 +456,8 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
         its component in the direction of the box's collision axis is zero 
         (mid point) and we det which of the extremes in each of the other axes 
         is closest*/
-        Vector3 ptOnOneEdge = box1.halfSize;
-        Vector3 ptOnTwoEdge = box2.halfSize;
+        cyclone::Vector3 ptOnOneEdge = box1.halfSize;
+        cyclone::Vector3 ptOnTwoEdge = box2.halfSize;
 
         for (unsigned i = 0; i < 3; i++){
             if (i == oneAxisIndex) ptOnOneEdge[i] = 0;
@@ -475,7 +473,7 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
 
         /*So we have a point and a direction for the colliding edges. We need 
         to find out the point of closest approach of the two line-segments*/
-        Vector3 vertex = contactPoint(ptOnOneEdge, oneAxis, box1.halfSize[oneAxisIndex], 
+        cyclone::Vector3 vertex = contactPoint(ptOnOneEdge, oneAxis, box1.halfSize[oneAxisIndex], 
             ptOnTwoEdge, twoAxis, box2.halfSize[twoAxisIndex], bestSingleAxis>2);
 
 
@@ -491,11 +489,11 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
 
 }
 
-unsigned CollisionDetector::boxAndPoint(const Box &box, const Vector3 &point, CollisionData *data){
+unsigned CollisionDetector::boxAndPoint(const Box &box, const cyclone::Vector3 &point, CollisionData *data){
     //Transform the point into box coordinates
-    Vector3 relPt = box.getTransform().transformInverse(point);
+    cyclone::Vector3 relPt = box.getTransform().transformInverse(point);
 
-    Vector3 normal;
+    cyclone::Vector3 normal;
 
     //Check each axis, looking for the axis on which the penetration is least deep.
     real min_depth = box.halfSize.x - real_abs(relPt.x);

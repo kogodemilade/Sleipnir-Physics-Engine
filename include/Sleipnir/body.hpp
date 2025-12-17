@@ -318,6 +318,10 @@ class RigidBody {
             else return -1;
         }
 
+        cyclone::Vector3 getDimensions(){
+            return cyclone::Vector3(width ,height, depth);
+        }
+
         /*Get orientaion and position matrix of object*/
         Matrix4 getPosandOrient() const {return state;}
 };

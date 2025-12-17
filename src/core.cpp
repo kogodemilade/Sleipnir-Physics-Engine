@@ -3,51 +3,53 @@
 
 using namespace cyclone;
 
-Vector3 Vector3::localToWorld(const Vector3 &local, const Matrix4 &transform) const{
+cyclone::Vector3 cyclone::Vector3::localToWorld(const cyclone::Vector3 &local, const Matrix4 &transform) const{
     return transform.transform(local);
 }
 
-Vector3 Vector3::worldToLocal(const Vector3 &world, const Matrix4 &transform) const{
+cyclone::Vector3 cyclone::Vector3::worldToLocal(const cyclone::Vector3 &world, const Matrix4 &transform) const{
     return transform.transformInverse(world);
 }
 
-void Vector3::setLocalVec(const Matrix4 &transform) {
-    Vector3 tmp = worldToLocal(*this, transform);
+void cyclone::Vector3::setLocalVec(const Matrix4 &transform) {
+    cyclone::Vector3 tmp = worldToLocal(*this, transform);
     x = tmp.x;
     y = tmp.y;
     z = tmp.z;
 }
 
-void Vector3::setWorldVec(const Matrix4 &transform) {
-    Vector3 tmp = localToWorld(*this, transform);
+void cyclone::Vector3::setWorldVec(const Matrix4 &transform) {
+    cyclone::Vector3 tmp = localToWorld(*this, transform);
     x = tmp.x;
     y = tmp.y;
     z = tmp.z;
 }
 
-Vector3 Vector3::localToWorldDirn(const Vector3 &local, const Matrix4 &transform) const {
+cyclone::Vector3 cyclone::Vector3::localToWorldDirn(const cyclone::Vector3 &local, const Matrix4 &transform) const {
     return transform.transformDirection(local);
 }
 
-Vector3 Vector3::worldToLocalDirn(const Vector3 &world, const Matrix4 &transform) const {
+cyclone::Vector3 cyclone::Vector3::worldToLocalDirn(const cyclone::Vector3 &world, const Matrix4 &transform) const {
     return transform.transformInvDir(world);
 }
 
-void Vector3::setLocalVecDirn(const Matrix4 &transform) {
-    Vector3 tmp = worldToLocalDirn(*this, transform);
+void cyclone::Vector3::setLocalVecDirn(const Matrix4 &transform) {
+    cyclone::Vector3 tmp = worldToLocalDirn(*this, transform);
     x = tmp.x;
     y = tmp.y;
     z = tmp.z;
 }
 
-void Vector3::setWorldVecDirn(const Matrix4 &transform) {
-    Vector3 tmp = localToWorldDirn(*this, transform);
+
+
+void cyclone::Vector3::setWorldVecDirn(const Matrix4 &transform) {
+    cyclone::Vector3 tmp = localToWorldDirn(*this, transform);
     x = tmp.x;
     y = tmp.y;
     z = tmp.z;
 }
 
-Matrix3 Vector3::skewSymmetricMatrix(){
+Matrix3 cyclone::Vector3::skewSymmetricMatrix(){
     Matrix3 res;
     res.data[0] = res.data[4] = res.data[8] = 0;
     res.data[1] = -z;
@@ -60,15 +62,15 @@ Matrix3 Vector3::skewSymmetricMatrix(){
 }
 
 
-Quaternion Vector3::toQuaternion()const{
-    Vector3 copy = *this;
+cyclone::Quaternion cyclone::Vector3::toQuaternion()const{
+    cyclone::Vector3 copy = *this;
     // copy.normalize();
-    real angle = copy.magnitude();
+    cyclone::real angle = copy.magnitude();
 
-    real half = angle*0.5f;
-    real s = sin(half);
+    cyclone::real half = angle*0.5f;
+    cyclone::real s = sin(half);
 
-    Quaternion q;
+    cyclone::Quaternion q;
     q.w = cos(half);
     q.x = copy.x * s;
     q.y = copy.y * s;
@@ -77,7 +79,7 @@ Quaternion Vector3::toQuaternion()const{
     return q;
 }
 
-glm::vec3 Vector3::toGlm() const{
+glm::vec3 cyclone::Vector3::toGlm() const{
     return glm::vec3(x, y, z);
 }
 
@@ -89,23 +91,23 @@ Matrix4::Matrix4(){
     data[12];
 }
 
-Vector3 Matrix4::transformDirection(const Vector3 &vector) const {
-    return Vector3(
+cyclone::Vector3 Matrix4::transformDirection(const cyclone::Vector3 &vector) const {
+    return cyclone::Vector3(
             vector.x*data[0] +vector.y * data[1] + vector.z *data[2],
             vector.x*data[4] +vector.y * data[5] + vector.z *data[6],
             vector.x*data[8] +vector.y * data[9] + vector.z *data[10]
         );
     }
 
-Vector3 Matrix4::transformInvDir(const Vector3 &vector) const {
-    return Vector3(
+cyclone::Vector3 Matrix4::transformInvDir(const cyclone::Vector3 &vector) const {
+    return cyclone::Vector3(
     vector.x * data[0] + vector.y * data[4] + vector.z * data[8],
     vector.x * data[1] + vector.y * data[5] + vector.z * data[9],
     vector.x * data[2] + vector.y * data[6] + vector.z * data[10]
     );
 }
 
-real Matrix4::getDeterminant() const {
+cyclone::real Matrix4::getDeterminant() const {
     float t1 = data[0] * data[5] * data[10];
 float t2 = data[0] * data[6] * data[9];
 float t3 = data[1] * data[4] * data[10];
@@ -116,15 +118,15 @@ float t6 = data[2] * data[5] * data[8];
 return t1 - t2 - t3 + t4 + t5 - t6;
 }
 
-Vector3 Matrix4::getAxisVector(int i) const {
-    return Vector3(data[i], data[i+4], data[i+8]);
+cyclone::Vector3 Matrix4::getAxisVector(int i) const {
+    return cyclone::Vector3(data[i], data[i+4], data[i+8]);
 }
 
 void Matrix4::setInverse(const Matrix4 &m) {
     //Make sure det is non-zero
-    real det = getDeterminant();
+    cyclone::real det = getDeterminant();
     if (det == 0) return;
-    det = ((real)1.0)/det;
+    det = ((cyclone::real)1.0)/det;
 
     data[0] = (-m.data[9]*m.data[6]+m.data[5]*m.data[10])*det;
 
@@ -196,15 +198,15 @@ Matrix4 Matrix4::operator*(const Matrix4 &o) const {
     return result;
 }
 
-Vector3 Matrix4::operator*(const Vector3 &vec) const {
-    return Vector3(
+cyclone::Vector3 Matrix4::operator*(const cyclone::Vector3 &vec) const {
+    return cyclone::Vector3(
         (vec.x*data[0]+vec.y*data[1]+vec.z*data[2]) + data[3],
         (vec.x*data[4]+vec.y*data[5]+vec.z*data[6]) + data[7],
         (vec.x*data[8]+vec.y*data[9]+vec.z*data[10]) + data[11]
     );
 }
 
-void Matrix4::setOrientAndPos(const Quaternion &q, const Vector3 &pos){
+void Matrix4::setOrientAndPos(const cyclone::Quaternion &q, const cyclone::Vector3 &pos){
     data[0] = 1 - (2*q.y*q.y + 2*q.z*q.z);
     data[1] = 2*(q.x*q.y + q.z*q.w);
     data[2] = 2*(q.x*q.z - q.y*q.w);
@@ -227,7 +229,7 @@ void Matrix4::setZero(){
     }
 }
 
-void Matrix4::setOrientAndPos(const Matrix3 &rot, const Vector3 &pos){
+void Matrix4::setOrientAndPos(const Matrix3 &rot, const cyclone::Vector3 &pos){
     data[0] = rot.data[0];
     data[1] = rot.data[1];
     data[2] = rot.data[2];
@@ -244,21 +246,21 @@ void Matrix4::setOrientAndPos(const Matrix3 &rot, const Vector3 &pos){
     data[11] = pos.z;
 }
 
-Vector3 Matrix4::transformInverse(const Vector3 &vector) const{
-    Vector3 tmp = vector;
+cyclone::Vector3 Matrix4::transformInverse(const cyclone::Vector3 &vector) const{
+    cyclone::Vector3 tmp = vector;
     tmp.x -= data[3];
     tmp.y -= data[7];
     tmp.z -= data[11];
 
-    return Vector3(
+    return cyclone::Vector3(
         tmp.x * data[0] + tmp.y * data[4] + tmp.z * data[8],
         tmp.x * data[1] + tmp.y * data[5] + tmp.z * data[9],
         tmp.x * data[2] + tmp.y * data[6] + tmp.z * data[10]
     );
 }
 
-Vector3 Matrix4::transform(const Vector3 &vector) const{
-    Vector3 tmp = vector;
+cyclone::Vector3 Matrix4::transform(const cyclone::Vector3 &vector) const{
+    cyclone::Vector3 tmp = vector;
 
     tmp.x = vector.x * data[0] + vector.y * data[1] + vector.z * data[2];
     tmp.y = vector.x * data[4] + vector.y * data[5] + vector.z * data[6];
@@ -268,7 +270,7 @@ Vector3 Matrix4::transform(const Vector3 &vector) const{
     tmp.y += data[7];
     tmp.z += data[11];
 
-    return Vector3(tmp.x, tmp.y, tmp.z);
+    return cyclone::Vector3(tmp.x, tmp.y, tmp.z);
 }
 
 glm::mat4 Matrix4::toGlm() const {
@@ -300,7 +302,7 @@ Matrix4 Matrix4::operator+(const Matrix4 &o) const{
     return res;
 }
 
-Matrix4 Matrix4::operator+(const Vector3 &vec) const{
+Matrix4 Matrix4::operator+(const cyclone::Vector3 &vec) const{
     Matrix4 res;
     for (int i=0; i < 12; i++){
         res.data[i] = data[i];
@@ -323,13 +325,13 @@ Matrix3::Matrix3(){
     data[9];
 }
 
-Matrix3::Matrix3(real _data[9]){
+Matrix3::Matrix3(cyclone::real _data[9]){
     for (size_t i=0; i < 9; i++){
         data[i] = _data[i];
     }
 }
 
-void Matrix3::setComponents(const Vector3 &a, const Vector3 &b, const Vector3 &c){
+void Matrix3::setComponents(const cyclone::Vector3 &a, const cyclone::Vector3 &b, const cyclone::Vector3 &c){
     data[0] = a.x;
     data[3] = a.y;
     data[6] = a.z;
@@ -343,7 +345,7 @@ void Matrix3::setComponents(const Vector3 &a, const Vector3 &b, const Vector3 &c
     data[8] = c.z;
 }
 
-void Matrix3::setDiagonal(real a, real b, real c){
+void Matrix3::setDiagonal(cyclone::real a, cyclone::real b, cyclone::real c){
     for(int i=0; i<9; i++){
         data[i] = 0;
     }
@@ -363,14 +365,14 @@ void Matrix3::setZero(){
     }
 }
 
-Vector3 Matrix3::operator *(const Vector3 &vec) const{
-    real row1 = data[0]*vec.x + data[1]*vec.y + data[2]*vec.z;
-    real row2 = data[3]*vec.x + data[4]*vec.y + data[5]*vec.z;
-    real row3 = data[6]*vec.x + data[7]*vec.y + data[8]*vec.z;
-    return Vector3(row1, row2, row3);
+cyclone::Vector3 Matrix3::operator *(const cyclone::Vector3 &vec) const{
+    cyclone::real row1 = data[0]*vec.x + data[1]*vec.y + data[2]*vec.z;
+    cyclone::real row2 = data[3]*vec.x + data[4]*vec.y + data[5]*vec.z;
+    cyclone::real row3 = data[6]*vec.x + data[7]*vec.y + data[8]*vec.z;
+    return cyclone::Vector3(row1, row2, row3);
 }
 
-Vector3 Matrix3::transform(const Vector3 &vec) const{
+cyclone::Vector3 Matrix3::transform(const cyclone::Vector3 &vec) const{
     return (*this)*vec;
 }
 
@@ -391,19 +393,19 @@ Matrix3 Matrix3::operator *(const Matrix3 &other) const{
 }
 
 void Matrix3::setInverse(const Matrix3 &m) {
-    real t4 = m.data[0]*m.data[4];
-    real t6 = m.data[0]*m.data[5];
-    real t8 = m.data[1]*m.data[3];
-    real t10 = m.data[2]*m.data[3];
-    real t12 = m.data[1]*m.data[6];
-    real t14 = m.data[2]*m.data[6];
+    cyclone::real t4 = m.data[0]*m.data[4];
+    cyclone::real t6 = m.data[0]*m.data[5];
+    cyclone::real t8 = m.data[1]*m.data[3];
+    cyclone::real t10 = m.data[2]*m.data[3];
+    cyclone::real t12 = m.data[1]*m.data[6];
+    cyclone::real t14 = m.data[2]*m.data[6];
 
     //Calculate det
-    real t16 = (t4*m.data[8] - t6*m.data[7] - t8*m.data[8] + t10*m.data[7] + t12*m.data[5] - t14*m.data[4]);
+    cyclone::real t16 = (t4*m.data[8] - t6*m.data[7] - t8*m.data[8] + t10*m.data[7] + t12*m.data[5] - t14*m.data[4]);
 
     //Make sure det is non-zero
     if (fabs(t16) < 1e-9) return;
-    real t17 = 1/t16;
+    cyclone::real t17 = 1/t16;
 
     data[0] = (m.data[4]*m.data[8] - m.data[5]*m.data[7])*t17;
     data[1] = -(m.data[1]*m.data[8] - m.data[2]*m.data[7])*t17;
@@ -422,7 +424,7 @@ Matrix3 Matrix3::inverse() const {
     return result;
 }
 
-Matrix3 Matrix3::operator*(real num) const{
+Matrix3 Matrix3::operator*(cyclone::real num) const{
     Matrix3 res;
     for (int i=0; i<9; i++){
         res.data[i] = data[i] * num;
@@ -430,7 +432,7 @@ Matrix3 Matrix3::operator*(real num) const{
     return res;
 }
 
-void Matrix3::operator*=(real num){
+void Matrix3::operator*=(cyclone::real num){
     for (int i=0; i<9; i++){
         data[i] = data[i] * num;
     }
@@ -466,7 +468,7 @@ void Matrix3::setTranspose(const Matrix3 &m) {
     data[8] = m.data[8];
 }
 
-Vector3 Matrix3::transformTranspose(const Vector3 &vec) const{
+cyclone::Vector3 Matrix3::transformTranspose(const cyclone::Vector3 &vec) const{
     return (*this).transpose().transform(vec);
 }
 
@@ -477,7 +479,7 @@ Matrix3 Matrix3::transpose() const {
 }
 
 
-void Matrix3::setOrientation(const Quaternion &q){
+void Matrix3::setOrientation(const cyclone::Quaternion &q){
     data[0] = 1 - (2*q.y*q.y + 2*q.z*q.z);
     data[1] = 2*(q.x*q.y + q.z*q.w);
     data[2] = 2*(q.x*q.z - q.y*q.w);
@@ -506,41 +508,41 @@ glm::mat3 Matrix3::toGlm() const{
 
 
 
-Quaternion::Quaternion(real w, real x, real y, real z): w(w), x(x), y(y), z(z) {}
+cyclone::Quaternion::Quaternion(cyclone::real w, cyclone::real x, cyclone::real y, cyclone::real z): w(w), x(x), y(y), z(z) {}
 
-Quaternion::Quaternion(real data[4]): w(data[0]), x(data[1]), y(data[2]), z(data[3]) {}
+cyclone::Quaternion::Quaternion(cyclone::real data[4]): w(data[0]), x(data[1]), y(data[2]), z(data[3]) {}
 
-Quaternion::Quaternion(){
+cyclone::Quaternion::Quaternion(){
     w=x=y=z=0;
 }
 
-void Quaternion::normalize() {
-    real d = w*w + x*x + y*y + z*z;
+void cyclone::Quaternion::normalize() {
+    cyclone::real d = w*w + x*x + y*y + z*z;
 
-    //Check for zero length quaternion, and use the no-rotation quaternion in that case.
-    if (fabs(d) < 0.0001){
+    //Check for zero length cyclone::Quaternion, and use the no-rotation cyclone::Quaternion in that case.
+    if (d < 0.0001){
         w=1;
         x=y=z=0;
         return;
     }
-    d = ((real)1.0)/real_sqrt(d);
+    d = ((cyclone::real)1.0)/cyclone::real_sqrt(d);
     w *= d;
     x *= d;
     y *= d;
     z *= d;
 }
 
-void Quaternion::operator *=(const Quaternion &o) {
-    Quaternion q = *this;
+void cyclone::Quaternion::operator *=(const cyclone::Quaternion &o) {
+    cyclone::Quaternion q = *this;
     w = q.w*o.w - q.x*o.x - q.y*o.y - q.z*o.z;
     x = q.w*o.x + q.x*o.w + q.y*o.z - q.z*o.y;
     y = q.w*o.y - q.x*o.z + q.y*o.w + q.z*o.x;
     z = q.w*o.z + q.x*o.y - q.y*o.x + q.z*o.w;
 }
 
-Quaternion Quaternion::operator *(const Quaternion &o)const {
-    Quaternion q = *this;
-    Quaternion res;
+cyclone::Quaternion cyclone::Quaternion::operator *(const cyclone::Quaternion &o)const {
+    cyclone::Quaternion q = *this;
+    cyclone::Quaternion res;
     res.w = q.w*o.w - q.x*o.x - q.y*o.y - q.z*o.z;
     res.x = w*o.x + x*o.w + y*o.z - z*o.y;
     res.y = w*o.y - x*o.z + y*o.w + z*o.x;
@@ -549,80 +551,80 @@ Quaternion Quaternion::operator *(const Quaternion &o)const {
     return res;
 }
 
-void Quaternion::rotateByVector(const Vector3 &vec) {
-real angle = sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
+void cyclone::Quaternion::rotateByVector(const cyclone::Vector3 &vec) {
+cyclone::real angle = sqrt(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
 
 if (angle < 1e-6) return;
 
-real half = angle*0.5f;
-real s = sin(half);
-real c=cos(half);
+cyclone::real half = angle*0.5f;
+cyclone::real s = sin(half);
+cyclone::real c=cos(half);
 }
 
-void Quaternion::addScaledVector(const Vector3& vector, real scale) {
-    Quaternion q(0, vector.x*scale, vector.y*scale, vector.z*scale);
+void cyclone::Quaternion::addScaledVector(const cyclone::Vector3& vector, cyclone::real scale) {
+    cyclone::Quaternion q(0, vector.x*scale, vector.y*scale, vector.z*scale);
     q *= *this;
-    w += q.w * ((real)0.5);
-    x += q.x * ((real)0.5);
-    y += q.y * ((real)0.5);
-    z += q.z * ((real)0.5);
+    w += q.w * ((cyclone::real)0.5);
+    x += q.x * ((cyclone::real)0.5);
+    y += q.y * ((cyclone::real)0.5);
+    z += q.z * ((cyclone::real)0.5);
 }
 
-Vector3 Quaternion::toEulerAngles() const{
-    real w_ = w;
-    real x_ = x;
-    real y_ = y;
-    real z_ = z;
+cyclone::Vector3 cyclone::Quaternion::toEulerAngles() const{
+    cyclone::real w_ = w;
+    cyclone::real x_ = x;
+    cyclone::real y_ = y;
+    cyclone::real z_ = z;
 
     //Roll (x-axis rotation)
-    real sinr = 2.0 * (w * x+y * z);
-    real cosr = 1.0 - 2.0 * (x*x + y*y);
-    real roll = std::atan2(sinr, cosr);
+    cyclone::real sinr = 2.0 * (w * x+y * z);
+    cyclone::real cosr = 1.0 - 2.0 * (x*x + y*y);
+    cyclone::real roll = std::atan2(sinr, cosr);
 
     //Pitch (y-axis rotation)
-    real sinp = 2.0 * (w*y - z*x);
-    real pitch;
+    cyclone::real sinp = 2.0 * (w*y - z*x);
+    cyclone::real pitch;
     if(std::abs(sinp) >= 1.0){
-        pitch = std::copysign(0.5*real_pi, sinp);
+        pitch = std::copysign(0.5*cyclone::real_pi, sinp);
     } else{
         pitch = std::asin(sinp);
     }
 
     //Yaw (z-axis rotation)
-    real siny = 2.0*(w*z + x*y);
-    real cosy = 1.0 - 2.0*(y*y + z*z);
-    real yaw = std::atan2(siny, cosy);
+    cyclone::real siny = 2.0*(w*z + x*y);
+    cyclone::real cosy = 1.0 - 2.0*(y*y + z*z);
+    cyclone::real yaw = std::atan2(siny, cosy);
 
-    return Vector3(roll, pitch, yaw);
+    return cyclone::Vector3(roll, pitch, yaw);
 
 }
 
-void Quaternion::rotate(const Quaternion &other){
-    Quaternion q = other*(*this);
+void cyclone::Quaternion::rotate(const cyclone::Quaternion &other){
+    cyclone::Quaternion q = other*(*this);
     *this = q;
 }
 
-Matrix3 Quaternion::toMatrix() const{
-    real x_ = x;
-    real y_ = y;
-    real z_ = z;
-    real w_ = w;
+Matrix3 cyclone::Quaternion::toMatrix() const{
+    cyclone::real x_ = x;
+    cyclone::real y_ = y;
+    cyclone::real z_ = z;
+    cyclone::real w_ = w;
 
-    real x2 = x_ + x_;
-    real y2 = y_ + y_;
-    real z2 = z_ + z_;
+    cyclone::real x2 = x_ + x_;
+    cyclone::real y2 = y_ + y_;
+    cyclone::real z2 = z_ + z_;
 
-    real xx = x_ * x2;
-    real yy = y_ * y2;
-    real zz = z_ * z2;
-    real xy = x_ * y2;
-    real xz = x_ * z2;
-    real yz = y_ * z2;
-    real wx = w_ * x2;
-    real wy = w_ * y2;
-    real wz = w_ * z2;
+    cyclone::real xx = x_ * x2;
+    cyclone::real yy = y_ * y2;
+    cyclone::real zz = z_ * z2;
+    cyclone::real xy = x_ * y2;
+    cyclone::real xz = x_ * z2;
+    cyclone::real yz = y_ * z2;
+    cyclone::real wx = w_ * x2;
+    cyclone::real wy = w_ * y2;
+    cyclone::real wz = w_ * z2;
 
-    real data[9] = {
+    cyclone::real data[9] = {
         1.0f - (yy + zz), xy - wz,       xz + wy,
         xy + wz,         1.0f - (xx + zz), yz - wx,
         xz - wy,         yz + wx,        1.0f - (xx + yy)
@@ -632,6 +634,6 @@ Matrix3 Quaternion::toMatrix() const{
     );
 }
 
-glm::quat Quaternion::toGlm()const{
+glm::quat cyclone::Quaternion::toGlm()const{
     return glm::quat(w, x, y, z);
 }

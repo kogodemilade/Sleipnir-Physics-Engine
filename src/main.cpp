@@ -5,36 +5,81 @@
 // #include "Sleipnir/collide_coarse.hpp"
 // #include "Sleipnir/core.hpp"
 // #include "Sleipnir/precision.hpp"
-// #include "Yggdrasil/ygg/engine.hpp"
 // #include <iostream>
 // #include <thread>
 // #include <chrono>
 // #include <iostream>
 // #include <thread>
 // #include <chrono>
+// #include <raylib.h>
 
-// Ygg::RenderEngine engine;
-// glm::mat4 projection;
-// Ygg::Camera cam = engine.createCamera({0.0f, 5.0f, 5.0f});
+// static inline ::Vector3 ToRayLib(const cyclone::Vector3& v) {
+// return { v.x, v.y, v.z };
+// }
 
-// void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-// void mouse_callback(GLFWwindow *window, double xpos, double ypos);
-// void scroll_callback(GLFWwindow *window, double xOffset, double yOffset);
+// static inline ::Quaternion ToRayLib(const cyclone::Quaternion& q) {
+//     return { q.x, q.y, q.z, q.w };
+// }
+
+// void DrawRigidBox(
+//     const cyclone::RigidBody& body,
+//     const cyclone::Vector3& halfSize,
+//     Color color
+// ) {
+//     ::Vector3 pos = ToRayLib(body.getPosition());
+
+//     DrawCubeV(
+//         pos,
+//         { halfSize.x * 2, halfSize.y * 2, halfSize.z * 2 },
+//         color
+//     );
+
+//     DrawCubeWiresV(
+//         pos,
+//         { halfSize.x * 2, halfSize.y * 2, halfSize.z * 2 },
+//         BLACK
+//     );
+// }
+
+// // Draw a line between two rigidbody points
+// void DrawRigidLine(
+//     const cyclone::Vector3& start,
+//     const cyclone::Vector3& end,
+//     Color color
+// ) {
+//     ::Vector3 s = ToRayLib(start);
+//     ::Vector3 e = ToRayLib(end);
+
+//     DrawLine3D(s, e, color);
+// }
+
+// void DrawRigidSphere(
+//     const cyclone::RigidBody& body,
+//     float radius,
+//     Color color
+// ) {
+//     ::Vector3 pos = ToRayLib(body.getPosition());
+
+//     // Draw solid sphere
+//     DrawSphere(pos, radius, color);
+
+//     // Draw wireframe
+//     DrawSphereWires(pos, radius, 16, 16, BLACK); // 16 slices/stacks for decent smoothness
+// }
 
 // int main() {
 //     /*Start some rendering stuff*/
-//     if (engine.initGL("../shaders/vShader.glsl", "../shaders/fShader2.glsl") != 0) {
-//         return -1;
-//     }
 
-//     GLFWwindow *window = engine.getWindow();
+//     InitWindow(1280, 800, "Cyclone Physics Debug (raylib)");
+//     SetTargetFPS(60);
 
-//     // simple GL state
-//     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    
-//     //register scroll and mouse callback
-//     glfwSetCursorPosCallback(window, mouse_callback);
-//     glfwSetScrollCallback(window, scroll_callback);
+//     Camera3D camera{};
+//     camera.position = { 0.0f, 6.0f, 8.0f };
+//     camera.target   = { 0.0f, 2.0f, 0.0f };
+//     camera.up       = { 0.0f, 1.0f, 0.0f };
+//     camera.fovy     = 60.0f;
+//     camera.projection = CAMERA_PERSPECTIVE;
+//     /*end rendering stuff*/
 
 //     auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -58,6 +103,8 @@
 //     cyclone::Matrix3 inertiaMat = IdentityMatrix * inertia;
 
 //     b.setInertiaTensor(inertiaMat);
+//     b.setAwake(1);
+//     b.name = "mass";
 //     b.calculateDerivedData();
 
 //     // Create fixed point (anchor)
@@ -71,6 +118,7 @@
 //     cyclone::Matrix3 maxMatrix;
 //     maxMatrix.setComponents(inertiaX_, inertiaY_, inertiaZ_);
 //     anchor.setInvInertiaTensor(maxMatrix);
+//     anchor.name = "Anchor";
 //     anchor.calculateDerivedData();
 
 //     // Connect with a rod (fixed length)
@@ -131,167 +179,163 @@
 
 //     /*Start rendering code*/
 //     // // create a few demo meshes
-//     Ygg::Mesh floor = engine.createBox(ground.getPosition().toGlm(), ground.getOrientation().toGlm(), ground.getSize(), 0.0001f, ground.getSize(), {0.7f, 1.7f, 0.0f}); //Instantiate the rest with correct arguments
-//     Ygg::Mesh mass = engine.createSphere(b.getPosition().toGlm(), b.getOrientation().toGlm(), b.getSize(), {0.9f, 0.8f, 0.7f}, 32, 32);
-//     Ygg::Mesh anchorMesh = engine.createSphere(anchor.getPosition().toGlm(), anchor.getOrientation().toGlm(), anchor.getSize(), {0.9f, 0.8f, 0.7f}, 32, 32);
-
-//     static Ygg::Line thread = engine.createLine();
 
 //     /*End rendering code*/
+       
+// int i = 0;
+// const float physics_dt = 0.01f;            
+// float accumulator = 0.0f;
+// auto previous = std::chrono::high_resolution_clock::now();
 
-//     float duration = 0.01;
-//     int i = 0;
-//     while (!glfwWindowShouldClose(window)) {
-//         auto now = std::chrono::high_resolution_clock::now();
-//         float dt = std::chrono::duration<float>(now - lastTime).count();
-//         lastTime = now;
+// int iter = 0;
+// while (!WindowShouldClose()) {
+//     auto now = std::chrono::high_resolution_clock::now();
+//     float frameTime = std::chrono::duration<float>(now - previous).count();
+//     previous = now;
 
+//     // clamp to avoid spiral of death if frameTime huge
+//     if (frameTime > 0.25f) frameTime = 0.25f;
 
+//     accumulator += frameTime;
 
+//     // Step physics with fixed substeps,
+//     while (accumulator >= physics_dt) {
 //         world.startFrame();
-//         world.runPhysics(duration);
 
-//         /*Start rendering code*/
-//         cam.processInput(window, dt);
+//             if( IsKeyDown(KEY_K)){
+//         world.runPhysics(physics_dt);}
 
-//         // // render
-//         glClearColor(0.15f, 0.15f, 0.18f, 1.0f);
-//         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-//         // // draw meshes (these meshes were baked with model transforms in createBox/createSphere)
-//         glm::mat4 view = cam.getViewMatrix();
-//         engine.drawMesh(floor, view, projection, cam.getCameraPos(), floor.model);
-//         engine.drawMesh(mass, view, projection, cam.getCameraPos(), b.getPosandOrient().toGlm());
-//         engine.drawMesh(anchorMesh, view, projection, cam.getCameraPos(), anchor.getPosandOrient().toGlm());
-
-
-
-//         glm::vec3 p1 = anchor.getPosition().toGlm();
-//         glm::vec3 p2 = b.getPosition().toGlm();
-//         glm::vec3 ropecolor = {0,0,0};
-//         engine.updateLine(thread, p1, p2, ropecolor);
-//         engine.drawLine(thread, view, projection, cam.getCameraPos());
-
-//         glfwSwapBuffers(window);
-//         glfwPollEvents();
-//         /*Stop rendering code*/
-
-//         if (i % 1 == 0) {
-//             std::cout << "iteration: " << i*duration << "secs\n";
-//             std::cout << "Position: x=" << b.getPosition().x
-//                       << " y=" << b.getPosition().y << "\n";
-//             std::cout << "Velocity: x=" << b.getVelocity().x
-//                       << " y=" << b.getVelocity().y << "\n";
-//             std::cout << "Acceleration: x=" << b.getAcceleration().x
-//                       << " y=" << b.getAcceleration().y << "\n\n";
-            
-//             // for (auto data: anchor.getInvInertiaTensorWorld().data){
-//             // std::cout << "Inverse Inertia tensor world "<<data<<"\n";}
-//             // std::cout << "\n\n\n\n";
-//         }
-
-//         i++;
-//         // std::this_thread::sleep_for(std::chrono::milliseconds(30));
+//         accumulator -= physics_dt;
+//         iter++;
 //     }
-//         // cleanup
-//     engine.cleanupMesh(floor);
-//     engine.cleanupMesh(mass);
-//     engine.cleanupMesh(anchorMesh);
 
-//     engine.terminate();
+//     if ((iter % 10) == 0) {
+//     for (auto b: world.rigidBodies){
+//     std::cout << "iteration: " << iter*0.01 << "secs\n";
+//     std::cout<<"Body: "<<b->name<<std::endl;
+//     std::cout << "Position: x=" << b->getPosition().x
+//                 << " y=" << b->getPosition().y << " z="<<b->getPosition().z << "\n";
+//     std::cout << "Velocity: x=" << b->getVelocity().x
+//                 << " y=" << b->getVelocity().y << " z="<<b->getVelocity().z<<"\n";
+//     std::cout << "Orientation: x=" << b->getOrientation().toEulerAngles().x << " y="<<b->getOrientation().toEulerAngles().y << " z="<<b->getOrientation().toEulerAngles().z << "\n";
+//     std::cout << "Acceleration: x=" << b->getAcceleration().x
+//                 << " y=" << b->getAcceleration().y << "\n\n";
+    
+//     }}
+
+//     // Rendering section unchanged (use bodies' current transforms)
+
+//     UpdateCamera(&camera, CAMERA_FREE);
+
+//         BeginDrawing();
+//         ClearBackground({ 38, 38, 46, 255 });
+
+//         BeginMode3D(camera);
+
+//         DrawPlane({0,0,0}, {40,40}, WHITE);
+
+//         DrawRigidSphere(
+//             b,
+//             sphere.radius,
+//             RED
+//         );
+
+//         DrawRigidSphere(
+//             anchor,
+//             sphereAnchor.radius,
+//             GREEN
+//         );
+
+//         DrawRigidLine(
+//             b.getPosition(),
+//             anchor.getPosition(),
+//             BLUE
+//         );
+
+       
+//         EndMode3D();
+
+//         DrawFPS(20, 20);
+//         EndDrawing();
+// }
+//         // cleanup
+
 //     return 0;
 // }
 
 
-// /*Some other rendering stuff*/
-// void framebuffer_size_callback(GLFWwindow *window, int width, int height){
-//     glViewport(0, 0, width, height);
-//     projection = glm::perspective(glm::radians(cam.getFov()), (float)width/height, 0.1f, 100.0f);
-
-// }
-
-// void mouse_callback(GLFWwindow *window, double xpos, double ypos){
-//     cam.processMouseMovement(window, xpos, ypos);
-// }
-
-// void scroll_callback(GLFWwindow *window, double xOffset, double yOffset){
-//     cam.processMouseScroll(static_cast<float>(yOffset), projection);
-// }
 
 
+// // //////////////////////////////////////////////////////////////
+// // #include "Sleipnir/world.hpp"
+// // #include "Sleipnir/body.hpp"
+// // #include "Sleipnir/links.hpp"
+// // #include "Sleipnir/collide_fine.hpp"
+// // #include "Sleipnir/collide_coarse.hpp"
+// // #include "Sleipnir/core.hpp"
+// // #include "Sleipnir/precision.hpp"
+// // #include "Yggdrasil/ygg/engine.hpp"
+// // #include "Sleipnir/ragdoll.hpp"
+// // #include <iostream>
+// // #include <thread>
+// // #include <chrono>
+// // #include <iostream>
+// // #include <thread>
+// // #include <chrono>
+
+// // using namespace cyclone;
+// // int main(){
+// // cyclone::World world(1000, 1000);
+
+// // Vector3 ragRoot(0.0f, 6.0f, 0.0f);
+// // auto rag = cyclone::RagdollBuilder::createSimpleRagdoll(world, ragRoot);
+// // int i = 0;
 
 
+// // cyclone::RigidBody ground;
+// // ground.setMass(0);
+// // ground.setPosition(cyclone::Vector3(0,0,0));
+// // ground.setSize(20.0f);
+// // cyclone::Vector3 groundInertiaX(0.0, 0.0, 0.0);
+// // cyclone::Vector3 groundInertiaY(0.0, 0.0, 0.0);
+// // cyclone::Vector3 groundInertiaZ(0.0, 0.0, 0.0);
+// // cyclone::Matrix3 groundTensor;
+// // groundTensor.setComponents(groundInertiaX, groundInertiaY, groundInertiaZ);
+// // ground.setInvInertiaTensor(groundTensor);
+// // ground.calculateDerivedData();
 
-// //////////////////////////////////////////////////////////////
-// #include "Sleipnir/world.hpp"
-// #include "Sleipnir/body.hpp"
-// #include "Sleipnir/links.hpp"
-// #include "Sleipnir/collide_fine.hpp"
-// #include "Sleipnir/collide_coarse.hpp"
-// #include "Sleipnir/core.hpp"
-// #include "Sleipnir/precision.hpp"
-// #include "Yggdrasil/ygg/engine.hpp"
-// #include "Sleipnir/ragdoll.hpp"
-// #include <iostream>
-// #include <thread>
-// #include <chrono>
-// #include <iostream>
-// #include <thread>
-// #include <chrono>
-
-// using namespace cyclone;
-// int main(){
-// cyclone::World world(1000, 1000);
-
-// Vector3 ragRoot(0.0f, 6.0f, 0.0f);
-// auto rag = cyclone::RagdollBuilder::createSimpleRagdoll(world, ragRoot);
-// int i = 0;
+// // cyclone::Plane groundPlane;
+// // groundPlane.body = &ground;
+// // groundPlane.normal = cyclone::Vector3(0, 1, 0);
+// // groundPlane.offset = (cyclone::real)0;
+// // groundPlane.bindPrimitive();
+// // groundPlane.calculateInternals();
 
 
-// cyclone::RigidBody ground;
-// ground.setMass(0);
-// ground.setPosition(cyclone::Vector3(0,0,0));
-// ground.setSize(20.0f);
-// cyclone::Vector3 groundInertiaX(0.0, 0.0, 0.0);
-// cyclone::Vector3 groundInertiaY(0.0, 0.0, 0.0);
-// cyclone::Vector3 groundInertiaZ(0.0, 0.0, 0.0);
-// cyclone::Matrix3 groundTensor;
-// groundTensor.setComponents(groundInertiaX, groundInertiaY, groundInertiaZ);
-// ground.setInvInertiaTensor(groundTensor);
-// ground.calculateDerivedData();
+// // world.addBodies(&ground, 1);
+// // cyclone::Gravity gravity(cyclone::Vector3(0, -9.81f, 0));
 
-// cyclone::Plane groundPlane;
-// groundPlane.body = &ground;
-// groundPlane.normal = cyclone::Vector3(0, 1, 0);
-// groundPlane.offset = (cyclone::real)0;
-// groundPlane.bindPrimitive();
-// groundPlane.calculateInternals();
+// // for (auto b: rag.bodies){
+// //     world.registry.add(b, &gravity);
+// // }
 
-
-// world.addBodies(&ground, 1);
-// cyclone::Gravity gravity(cyclone::Vector3(0, -9.81f, 0));
-
-// for (auto b: rag.bodies){
-//     world.registry.add(b, &gravity);
-// }
-
-// while(1){
-//     world.startFrame();
-//     world.runPhysics(0.01);
-//     for (auto b: rag.bodies){
-//             std::cout << "iteration: " << i*0.01 << "secs\n";
-//             std::cout << "Position: x=" << b->getPosition().x
-//                       << " y=" << b->getPosition().y << "\n";
-//             std::cout << "Velocity: x=" << b->getVelocity().x
-//                       << " y=" << b->getVelocity().y << "\n";
-//             std::cout << "Acceleration: x=" << b->getAcceleration().x
-//                       << " y=" << b->getAcceleration().y << "\n\n";
+// // while(1){
+// //     world.startFrame();
+// //     world.runPhysics(0.01);
+// //     for (auto b: rag.bodies){
+// //             std::cout << "iteration: " << i*0.01 << "secs\n";
+// //             std::cout << "Position: x=" << b->getPosition().x
+// //                       << " y=" << b->getPosition().y << "\n";
+// //             std::cout << "Velocity: x=" << b->getVelocity().x
+// //                       << " y=" << b->getVelocity().y << "\n";
+// //             std::cout << "Acceleration: x=" << b->getAcceleration().x
+// //                       << " y=" << b->getAcceleration().y << "\n\n";
             
-//             // for (auto data: anchor.getInvInertiaTensorWorld().data){
-//             // std::cout << "Inverse Inertia tensor world "<<data<<"\n";}
-//             // std::cout << "\n\n\n\n";
-//         }
-//         i++;
-//     }
-// return 0;
-// }
+// //             // for (auto data: anchor.getInvInertiaTensorWorld().data){
+// //             // std::cout << "Inverse Inertia tensor world "<<data<<"\n";}
+// //             // std::cout << "\n\n\n\n";
+// //         }
+// //         i++;
+// //     }
+// // return 0;
+// // }

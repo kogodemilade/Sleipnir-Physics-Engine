@@ -79,6 +79,8 @@ class Contact {
 
         Vector3 angularChange[2];
 
+        Vector3 accumulatedImpulseVec;
+
         /*Set contact data
         @param ContactPoint point of contact in world coordinates
         @param contactNormal holds contact normal
@@ -132,8 +134,8 @@ class Contact {
 
 /*The contact resolution routine. One resolver instance can be shared for the whole simulation*/
 class ContactResolver {
-    real penetrationEpsilon = 0.001;
-    real velocityEpsilon = 0.001;
+    real penetrationEpsilon = 0.00005;
+    real velocityEpsilon = penetrationEpsilon/0.01; /////////////////////
     unsigned iterations = 1000;
     public:
 

@@ -9,18 +9,19 @@ unsigned PositionJoint::addContact(Contact *contact, unsigned limit) const{
     /*The vector that is the distance between both positions in world coordinates*/
     Vector3 distVec = pos1 - pos0;
 
-    /*The squared magnitude of the distance vector*/
-    real dist = fabs(distVec.magnitude());
+    /*The magnitude of the distance vector*/
+    real dist = real_abs(distVec.magnitude());
 
     /*Check if the distance between them is greater than the allowed error, if so, create contact*/
     if (dist > error && limit) {
-        /*Contact point is midway between points*/
-        Vector3 contactPoint =(pos0 + pos1)*0.5;
+        Vector3 contactPoint =pos0;
 
         Vector3 contactNormal = distVec.returnNormalizedVec();      
-        real penetration = real_sqrt(dist) - error;
+        real penetration = distVec.magnitude() - error;
 
-        if (distVec.magnitude() - error > 0) contactNormal *= -1; //reversing for pulling vs pushing. continue tomorrow.
+        if (distVec.magnitude() - error > 0) 
+        {contactNormal *= -1;} //reversing for pulling vs pushing. 
+        // else {return 0;}
 
         /*setData(const cyclone::Vector3 &contactPoint_, const cyclone::Vector3 
         &contactNormal_, cyclone::real penetration_, cyclone::RigidBody *body1_, 

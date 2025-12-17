@@ -3,7 +3,7 @@
 #include <assert.h>
 /**Inline function that creates a transfowm matrix from a pos and orient */
 using namespace cyclone;
-static inline void _calculateTransformMatrix(Matrix4 &transformMatrix, const Vector3 &pos, const Quaternion &orient) {
+static inline void _calculateTransformMatrix(Matrix4 &transformMatrix, const cyclone::Vector3 &pos, const cyclone::Quaternion &orient) {
     transformMatrix.data[0] = 1-2*orient.y*orient.y-2*orient.z*orient.z;
     transformMatrix.data[1] = 2*orient.x*orient.y - 2*orient.w*orient.z;
     transformMatrix.data[2] = 2*orient.x*orient.z + 2*orient.w*orient.y;
@@ -49,7 +49,7 @@ static inline void _transformInertiaTensor(Matrix3 &iitWorld, const Matrix3 &iit
 
 RigidBody::RigidBody(){}
 
-RigidBody::RigidBody(real _mass, Vector3 &pos, Quaternion &orient){
+RigidBody::RigidBody(real _mass, cyclone::Vector3 &pos, cyclone::Quaternion &orient){
     if (_mass==0 || _mass==REAL_MAX)
     {inverseMass = 0.0f;}
     else{
@@ -61,7 +61,7 @@ RigidBody::RigidBody(real _mass, Vector3 &pos, Quaternion &orient){
     
 }
 
-RigidBody::RigidBody(real _mass, Vector3 &pos, Quaternion &orient, real _size){
+RigidBody::RigidBody(real _mass, cyclone::Vector3 &pos, cyclone::Quaternion &orient, real _size){
     if (_mass==0 || _mass==REAL_MAX)
     {inverseMass = 0.0f;}
     else{
@@ -94,7 +94,7 @@ void RigidBody::calculateDerivedData(){
     
 }
 
-void RigidBody::addForce(const Vector3 &force, bool g){
+void RigidBody::addForce(const cyclone::Vector3 &force, bool g){
     if(!g) setAwake(1);
     forceAccum += force;
 }
@@ -104,23 +104,23 @@ void RigidBody::clearAccumulators(){
     torqueAccum.clear();
 }
 
-void RigidBody::addForceAtBodyPoint(const Vector3 &force, const Vector3 &point) {
+void RigidBody::addForceAtBodyPoint(const cyclone::Vector3 &force, const cyclone::Vector3 &point) {
     //Convert the point from body space (relative to center of mass) to world space.
-    Vector3 pt;
+    cyclone::Vector3 pt;
     pt = pt.localToWorld(point, transformMatrix);
     addForceAtPoint(force, pt);
 }
 
-void RigidBody::addForceAtPoint(const Vector3 &force, const Vector3 &point){
+void RigidBody::addForceAtPoint(const cyclone::Vector3 &force, const cyclone::Vector3 &point){
     setAwake(1);
-    Vector3 pt = point;
+    cyclone::Vector3 pt = point;
     pt -= position;
     
     forceAccum += force;
     torqueAccum += pt % force;
 }
 
-void RigidBody::addTorque(const Vector3 &torque){
+void RigidBody::addTorque(const cyclone::Vector3 &torque){
     setAwake(1);
     torqueAccum += torque;
 }
@@ -169,55 +169,55 @@ void RigidBody::setMass(const real mass){
     inverseMass = (real)1.0/mass;
 }
 
-Vector3 RigidBody::getPosition() const{
+cyclone::Vector3 RigidBody::getPosition() const{
     return position;
 }
 
-void RigidBody::setPosition(const Vector3 &pos){
+void RigidBody::setPosition(const cyclone::Vector3 &pos){
     position = pos;
 }
 
-Quaternion RigidBody::getOrientation() const{
+cyclone::Quaternion RigidBody::getOrientation() const{
     return orientation;
 }
 
-void RigidBody::setOrientation(const Quaternion &orient){
+void RigidBody::setOrientation(const cyclone::Quaternion &orient){
     orientation = orient;
 }
 
-Vector3 RigidBody::getRotation() const{
+cyclone::Vector3 RigidBody::getRotation() const{
     return rotation;
 }
 
-void RigidBody::setRotation(const Vector3 &rotation_) {
+void RigidBody::setRotation(const cyclone::Vector3 &rotation_) {
     rotation = rotation_;
 }
 
-Vector3 RigidBody::getVelocity() const{
+cyclone::Vector3 RigidBody::getVelocity() const{
     return velocity;
 }
 
-void RigidBody::setVelocity(const Vector3 &vel){
+void RigidBody::setVelocity(const cyclone::Vector3 &vel){
     velocity = vel;
 }
 
-Vector3 RigidBody::getAcceleration() const{
+cyclone::Vector3 RigidBody::getAcceleration() const{
     return acceleration;
 }
 
-Vector3 RigidBody::getPrevAcceleration(){
+cyclone::Vector3 RigidBody::getPrevAcceleration(){
     return lastFrameAcceleration;
 }
 
-void RigidBody::setAcceleration(const Vector3 &acc){
+void RigidBody::setAcceleration(const cyclone::Vector3 &acc){
     acceleration = acc;
 }
 
-Vector3 RigidBody::getAngAcceleration() const{
+cyclone::Vector3 RigidBody::getAngAcceleration() const{
     return angularAcceleration;
 }
 
-void RigidBody::setAngAcceleration(const Vector3 &angAcceleration){
+void RigidBody::setAngAcceleration(const cyclone::Vector3 &angAcceleration){
     angularAcceleration = angAcceleration;
 }
 
@@ -237,31 +237,31 @@ void RigidBody::setInvInertiaTensorWorld(const Matrix3 &invInertiaTensor){
     inverseInertiaTensorWorld = invInertiaTensor;
 }
 
-void RigidBody::updateVelocity(Vector3 &addedVelocity){
+void RigidBody::updateVelocity(cyclone::Vector3 &addedVelocity){
     velocity += addedVelocity; 
 }
 
-void RigidBody::updateRotation(Vector3 &addedRotation){
+void RigidBody::updateRotation(cyclone::Vector3 &addedRotation){
     rotation += addedRotation; 
 }
 
-void RigidBody::updatePosition(Vector3 &addedPos){
+void RigidBody::updatePosition(cyclone::Vector3 &addedPos){
     position += addedPos; 
 }
 
-void RigidBody::rotateByVector(Vector3 &rot){
+void RigidBody::rotateByVector(cyclone::Vector3 &rot){
     orientation.rotateByVector(rot);
 }
 
-void RigidBody::rotate(Quaternion &q){
+void RigidBody::rotate(cyclone::Quaternion &q){
     orientation.rotate(q);
 }
 
-Vector3 RigidBody::getPointInLocalSpace(const Vector3 &pt) const{
+cyclone::Vector3 RigidBody::getPointInLocalSpace(const cyclone::Vector3 &pt) const{
     return transformMatrix.transformInverse(pt);
 }
 
-Vector3 RigidBody::getPointInWorldSpace(const Vector3 &pt) const{
+cyclone::Vector3 RigidBody::getPointInWorldSpace(const cyclone::Vector3 &pt) const{
     return transformMatrix.transform(pt);
 }
 
@@ -312,7 +312,7 @@ void RigidBody::setCanSleep(bool sleepable){
 void RigidBody::checkShouldSleep(real _bias, real duration){
     /* A mass-independent approximation of total kinetic energy the body experiencex*/
     real currentMotion = velocity.scalarProduct(velocity) + rotation.scalarProduct(rotation);
-    currentMotion += 0.07* fabs(position.y-size);
+    // currentMotion += 0.07* fabs(position.y-size);
     /*Recency weighted average for a rolling average of the motion (or energy)*/
     // real bias = real_pow(_bias, duration);
     real bias = _bias;
@@ -330,7 +330,7 @@ void RigidBody::integrate(real duration) {
     if (!isAwake) return;
     //Calculate linear acceleration from force inputs.
     // lastFrameAcceleration = acceleration;
-    acceleration = Vector3(0, 0, 0);
+    acceleration = cyclone::Vector3(0, 0, 0);
     // lastFrameAcceleration.addScaledVector(forceAccum, inverseMass);
     acceleration.addScaledVector(forceAccum, inverseMass);
     lastFrameAcceleration = acceleration;

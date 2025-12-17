@@ -3,6 +3,7 @@
 #include "precision.hpp"
 #include "Yggdrasil/glm/glm.hpp"
 #include "Yggdrasil/glm/ext.hpp"
+#include <raylib.h>
 #include <initializer_list>
 #include <algorithm>
 #include <iterator>
@@ -46,6 +47,13 @@ class Vector3 {
     /* Gets the square magnitude of this vector. */
     real squareMagnitude() const {
         return x*x+y*y+z*z;
+    }
+
+    //Rounds near 0 components down to 0
+    void removeDrift() {
+        if(real_abs(x) < 0.01) x = 0;
+        if(real_abs(y) < 0.01) y = 0;
+        if(real_abs(z) < 0.01) z = 0;
     }
 
 
@@ -409,6 +417,10 @@ class Quaternion {
 
     /*Creates a new instance of the quaternion class with 4 real numbers */
     Quaternion();
+
+    Quaternion operator ^(real power){
+        //Finish later
+    }
 
     /*Normalizes the quaternion to unit length, making it a valid orientation quaternion*/
     void normalize();

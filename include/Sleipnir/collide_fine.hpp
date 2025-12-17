@@ -33,7 +33,7 @@ struct CollisionData {
     real restitution;
 
     /*Holds the lateral friction a normal*/
-    real friction = 1;
+    real friction = 0.5;
 
     /*Holds the tolerance for caluclating interpenetration*/
     real tolerance = 0.01;

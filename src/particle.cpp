@@ -12,7 +12,7 @@ void Particle::integrate(real duration){
     position.addScaledVector(velocity, duration);
 
     /*ascertain acc from force*/
-    // Vector3 resultingAcc = acceleration;
+    // cyclone::Vector3 resultingAcc = acceleration;
     acceleration = forceAccum*getInverseMass();
 
     //update linear vel. from the acc.
@@ -47,7 +47,7 @@ real Particle::getInverseMass(){
     return inverseMass;
 }
 
-void Particle::setPosition(const Vector3 &position){
+void Particle::setPosition(const cyclone::Vector3 &position){
     Particle::position = position;
 }
 
@@ -57,35 +57,35 @@ void Particle::setPosition(const real x, const real y, const real z){
     position.z = z;
 }
 
-void Particle::getPosition(Vector3 *position) const {
+void Particle::getPosition(cyclone::Vector3 *position) const {
     *position = Particle::position;
 }
 
-Vector3 Particle::getPosition(){
+cyclone::Vector3 Particle::getPosition(){
     return position;
 }
 
-void Particle::setVelocity(const Vector3 &velocity){
+void Particle::setVelocity(const cyclone::Vector3 &velocity){
     Particle::velocity = velocity;
 }
 
-Vector3 Particle::getVelocity(){
+cyclone::Vector3 Particle::getVelocity(){
     return velocity;
 }
 
-void Particle::getVelocity(Vector3 *velocity) const {
+void Particle::getVelocity(cyclone::Vector3 *velocity) const {
     *velocity = Particle::velocity;
 }
 
-void Particle::setAcceleration(const Vector3 &acceleration){
+void Particle::setAcceleration(const cyclone::Vector3 &acceleration){
     Particle::acceleration = acceleration;
 }
 
-Vector3 Particle::getAcceleration(){
+cyclone::Vector3 Particle::getAcceleration(){
     return Particle::acceleration;
 }
 
-void Particle::getAcceleration(Vector3 *acceleration) const {
+void Particle::getAcceleration(cyclone::Vector3 *acceleration) const {
     *acceleration = Particle::acceleration;
 }
 
@@ -105,7 +105,7 @@ void Particle::clearAccumulator(){
     forceAccum.clear();
 }
 
-void Particle::addForce(const Vector3 &force){
+void Particle::addForce(const cyclone::Vector3 &force){
     forceAccum += force;
 }
 

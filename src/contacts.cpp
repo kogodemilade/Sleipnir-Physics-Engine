@@ -44,7 +44,7 @@ void ContactResolver::adjustPositions(std::vector<Contact> &contacts, unsigned n
         }
         /*Debugging code*/
         //Save the original contact data
-        if (j == 999){
+        if (j == 0){
             for (auto contact: contacts){
                 contacts_prime.push_back(contact);
             }
@@ -111,9 +111,9 @@ void ContactResolver::adjustVelocities(std::vector<Contact> &contacts, unsigned 
         real fastestClosingVelocity = velocityEpsilon;
 
         for (auto& contact: contacts){
-            if(contact.contactVelocity.x > fastestClosingVelocity){
+            if(contact.desiredDeltaVelocity > fastestClosingVelocity){
                 worstContact = &contact;
-                fastestClosingVelocity = contact.contactVelocity.x;
+                fastestClosingVelocity = contact.desiredDeltaVelocity;
             }
         }
 
@@ -132,13 +132,13 @@ void ContactResolver::adjustVelocities(std::vector<Contact> &contacts, unsigned 
                     cp+=worstContact->velocityChange[0];
 
                     /*Shift it along the contact normal*/
-                    contacts[i].contactVelocity += contacts[i].contactToWorld.transformTranspose(cp); //CHECK THIS
+                    contacts[i].contactVelocity -= contacts[i].contactToWorld.transformTranspose(cp); //CHECK THIS
                     contacts[i].calcDesiredDeltaVelocity(duration);
 
                 } else if (contacts[i].body[0] == worstContact->body[1]){
                     cp = worstContact->rotationChange[1].vectorProduct(contacts[i].relativeContactPosition[0]);
                     cp+=worstContact->velocityChange[1]; //check
-                    contacts[i].contactVelocity += contacts[i].contactToWorld.transformTranspose(cp); //CHECK THIS
+                    contacts[i].contactVelocity -= contacts[i].contactToWorld.transformTranspose(cp); //CHECK THIS
                     contacts[i].calcDesiredDeltaVelocity(duration);
                 }
             }
@@ -146,14 +146,14 @@ void ContactResolver::adjustVelocities(std::vector<Contact> &contacts, unsigned 
                 if(contacts[i].body[1]==worstContact->body[0]){
                     cp = worstContact->rotationChange[0].vectorProduct(contacts[i].relativeContactPosition[1]);
                     cp+=worstContact->velocityChange[0];
-                    contacts[i].contactVelocity -= contacts[i].contactToWorld.transformTranspose(cp); //CHECK THIS
+                    contacts[i].contactVelocity += contacts[i].contactToWorld.transformTranspose(cp); //CHECK THIS
                     contacts[i].calcDesiredDeltaVelocity(duration);
 
                 } else if (contacts[i].body[1] == worstContact->body[1]){
                     cp = worstContact->rotationChange[1].vectorProduct(contacts[i].relativeContactPosition[1]);
                     cp+=worstContact->velocityChange[1];
                     cp = contacts[i].contactToWorld.transformTranspose(cp);
-                    contacts[i].contactVelocity -= cp; //CHECK THIS
+                    contacts[i].contactVelocity += cp; //CHECK THIS
                     contacts[i].calcDesiredDeltaVelocity(duration);
                     }
             }
@@ -251,19 +251,22 @@ void Contact::matchAwakeState(){
     }
 }
 
-void Contact::calcContactVelocity(real duration){
+void Contact::calcContactVelocity(real duration){ //Contact Velocity is the separating velocity, not the Closing velocity
+    //Normal is always given as P1-P0. Therefore Velocity should also be given as V1-V0, to satisfy the equation given in the book: (ṗa − ṗb ) · (p_a − p_b )
     Vector3 deltaVelocityVec = body[0]->getRotation() % relativeContactPosition[0];
-    deltaVelocityVec = body[0]->getVelocity();
+    deltaVelocityVec += body[0]->getVelocity();
+    deltaVelocityVec *= -1;
+
  
     /*Calculate the amount of velocity that is due to forces without reactions*/
-    Vector3 accVelocity = body[0]->getPrevAcceleration()*duration;
+     Vector3 accVelocity = body[0]->getPrevAcceleration()*duration*-1;
 
     if(body[1]) {
-        deltaVelocityVec -= body[1]->getRotation() % relativeContactPosition[1];
-        deltaVelocityVec -= body[1]->getVelocity();
+        deltaVelocityVec += body[1]->getRotation() % relativeContactPosition[1];
+        deltaVelocityVec += body[1]->getVelocity();
 
     /*Calculate the amount of velocity that id due to forces without reactions*/
-    accVelocity -= body[1]->getPrevAcceleration()*duration;
+    accVelocity += body[1]->getPrevAcceleration()*duration;
     }
     contactVelocity = contactToWorld.transformTranspose(deltaVelocityVec);
 
@@ -283,17 +286,20 @@ void Contact::calcContactVelocity(real duration){
 }
 
 void Contact::calcDesiredDeltaVelocity(real duration){
-    const static real velLowerLimit = (real)0.25f;
+    const static real velLowerLimit = (real)0.025f;
+
+        real velocityFromAcc = 0;
 
     //Get velocity from acceleration, V = u + at
-    real velocityFromAcc = 0;
-    velocityFromAcc += body[0]->getPrevAcceleration() * duration *contactNormal;
+    if(body[0]->getState()){
+    velocityFromAcc += body[0]->getPrevAcceleration() * duration *contactNormal;}
     
-    if (body[1]) {
+    if (body[1] && body[1]->getState()){
         velocityFromAcc -= body[1]->getPrevAcceleration() * duration * contactNormal;
     }
 
     //If velocity is very low, limit restitution
+    restitution = 0.3;
     real thisRestitution = restitution;
     if (real_abs(contactVelocity.x) < velLowerLimit) {
         thisRestitution = (real)0.0f;
@@ -306,12 +312,11 @@ void Contact::calcDesiredDeltaVelocity(real duration){
 }
 
    void Contact::calcImpulse(real duration){
+    Vector3 impulseContact;
     /*Build a matrix that shows the change in veloocity in world 
     space for a unit imp in dir of contact norm. 
     The equivalent of cross product between vectors is multiplication by a skew matrix*/
-    real baumgarte = 0.2f;
-    real biasFactor = baumgarte/duration;
-    real bias = biasFactor * penetration;
+
     Matrix3 impulseToTorque = relativeContactPosition[0].skewSymmetricMatrix();
 
     Matrix3 deltaVelWorld = impulseToTorque;
@@ -329,40 +334,41 @@ void Contact::calcDesiredDeltaVelocity(real duration){
         Matrix3 impToTorque = relativeContactPosition[1].skewSymmetricMatrix();
         
         /*Find inertia tensor for this body*/
-        Matrix3 invInertiaTensor = body[1]->getInvInertiaTensorWorld();
-        Matrix3 deltaVelWorld2 = impToTorque * invInertiaTensor;
+        Matrix3 invInertiaTensor2 = body[1]->getInvInertiaTensorWorld();
+        Matrix3 deltaVelWorld2 = impToTorque;
+        deltaVelWorld2 *= invInertiaTensor2;
         deltaVelWorld2 *= impToTorque;
         deltaVelWorld2 *=-1;
 
-        real inverseMass2 = body[1]->getInverseMass();
-
-        inverseMass += inverseMass2;
+        inverseMass += body[1]->getInverseMass();
 
         deltaVelWorld = deltaVelWorld+ deltaVelWorld2;
     }
 
-    Vector3 impulseContact;
     /*change to contact coord by change of basis */
 
-    Matrix3 deltaVelocity = contactToWorld.transpose() * deltaVelWorld;
+    Matrix3 deltaVelocity = contactToWorld.transpose();
+    deltaVelocity *= deltaVelWorld;
     deltaVelocity *= contactToWorld;
-
-    inverseMass = inverseMass;
 
     deltaVelocity.data[0] += inverseMass;
     deltaVelocity.data[4] += inverseMass;
     deltaVelocity.data[8] += inverseMass;
 
+    real baumgarte_coeff = 0.2;
+    cyclone::Vector3 bias = contactNormal*(-baumgarte_coeff * penetration/duration);
+    bias = contactToWorld.transformTranspose(bias);
+    // bias.clamp(0.2f, -0.2f);
+
     /*Invert matrix to get impulse per unit velocity*/
     Matrix3 impulseMatrix = deltaVelocity.inverse();
 
     /*Find target velocities to kill*/
-    // Vector3 velKill(desiredDeltaVelocity-contactVelocity.x, -contactVelocity.y, -contactVelocity.z);
-    Vector3 velKill(desiredDeltaVelocity, contactVelocity.y, contactVelocity.z);
+    Vector3 velKill(desiredDeltaVelocity, -contactVelocity.y, -contactVelocity.z);///
 
     //Find the impulse to kill target velocities
-      impulseContact = impulseMatrix.transform(velKill);
-
+    impulseContact = impulseMatrix.transform(velKill+bias);
+    // impulseContact = impulseMatrix.transform(velKill);
     /*Check for exceeding friction on contact plane (NOT normal).*/
     // Check for exceeding friction
     real planarImpulse = real_sqrt(
@@ -371,19 +377,12 @@ void Contact::calcDesiredDeltaVelocity(real duration){
         );
 
         //overwrite friction for now. remove later.
-        friction = 0;
-    if (planarImpulse > real_abs(impulseContact.x) * friction)
+        friction = 0.1;
+    if (planarImpulse > impulseContact.x * friction)
     {
-        // We need to use dynamic friction
-        impulseContact.y /= planarImpulse;
-        impulseContact.z /= planarImpulse;
-
-        impulseContact.x = deltaVelocity.data[0] +
-            deltaVelocity.data[1]*friction*impulseContact.y +
-            deltaVelocity.data[2]*friction*impulseContact.z;
-        impulseContact.x = desiredDeltaVelocity / impulseContact.x;
-        impulseContact.y *= friction * impulseContact.x;
-        impulseContact.z *= friction * impulseContact.x;
+    real scale = (impulseContact.x * friction) / planarImpulse;
+    impulseContact.y *= scale;
+    impulseContact.z *= scale;
     }
 
      impulse = contactToWorld.transform(impulseContact);
@@ -394,6 +393,7 @@ void Contact::applyImpulse(real duration){
     assert(impulse.x == impulse.x);
     assert(impulse.y == impulse.y);
     assert(impulse.z == impulse.z);
+    impulse *= -1;
 
     /*Calculate change in velocity as dv = g/m (g=impulse)*/
     velocityChange[0] = impulse * body[0]->getInverseMass();
@@ -406,6 +406,8 @@ void Contact::applyImpulse(real duration){
     // velocityChange[0].clamp(100, -100);
 
     /*Apply the added angular and linear velocities*/
+    // velocityChange[0].removeDrift();
+    // rotationChange[0].removeDrift();
     body[0]->updateVelocity(velocityChange[0]);
     body[0]->updateRotation(rotationChange[0]);
 
@@ -420,6 +422,8 @@ void Contact::applyImpulse(real duration){
     rotationChange[1] = body[1]->getInvInertiaTensorWorld().transform(impulsiveTorque2);
 
     /*Apply the added angular and linear velocities*/
+    // velocityChange[1].removeDrift();
+    // rotationChange[1].removeDrift();
     body[1]->updateVelocity(velocityChange[1]);
     body[1]->updateRotation(rotationChange[1]);
 }
@@ -487,7 +491,7 @@ for (unsigned i=0; i<2; i++){
     Vector3 impulsePerMove = body[0]->getInvInertiaTensorWorld().transform(impulsiveTorque);
 
     /*Multiply by inertia to get one unit of movement*/
-    Vector3 rotationPerMove = impulsePerMove * (1/(angularInertia[0]+0.001f));
+    Vector3 rotationPerMove = impulsePerMove * (1/(angularInertia[0]+0.00001f));
 
     /*Multiply by angular move to get the total rotation*/
     Vector3 rotation = rotationPerMove*angularMove;
@@ -497,12 +501,17 @@ for (unsigned i=0; i<2; i++){
 
     assert(linearMove == linearMove);
     assert(angularMove == angularMove);     //Ensure we dont have NaN's since Nan != Nan
-    linearMoveVec.clamp(2, -2);
+    // linearMoveVec.clamp(2, -2);
+
+    // linearMoveVec.removeDrift();
+    // rotation.removeDrift();
     // linearMoveVec*=0.7;
     linearChange[0] = linearMoveVec;
     angularChange[0] = rotation;
     Quaternion rotQuat = rotation.toQuaternion();
     assert((float)body[0]->getPosition().y >-0.2f && (float)body[0]->getPosition().y < 20.0f);
+    
+
     body[0]->updatePosition(linearMoveVec);
     body[0]->rotate(rotQuat);
 
@@ -538,17 +547,22 @@ for (unsigned i=0; i<2; i++){
 
     /*Multiply by angular move to get the total rotation*/
     Vector3 rotation2 = rotationPerMove*angularMove;
-    Quaternion rotQuat2 = rotation2.toQuaternion();
 
     assert((float)body[0]->getPosition().y >-0.2f && (float)body[0]->getPosition().y < 20.0f);
     Vector3 linearMoveVec2 = contactNormal*linearMove2;
-    linearMoveVec2.clamp(2, -2);
+    // linearMoveVec2.clamp(2, -2);
+
+    // linearMoveVec2.removeDrift();
+    // rotation2.removeDrift();
+
+    Quaternion rotQuat2 = rotation2.toQuaternion();
+
     // linearMoveVec*=0.95;
     linearChange[1] = linearMoveVec2;
     angularChange[1] = rotation2;
     body[1]->updatePosition(linearMoveVec2);
     body[1]->rotate(rotQuat2);
-    assert((float)body[1]->getPosition().y >-0.5f && (float)body[1]->getPosition().y < 20.0f);
+    // assert((float)body[1]->getPosition().y >-0.5f && (float)body[1]->getPosition().y < 20.0f);
 
         }
 

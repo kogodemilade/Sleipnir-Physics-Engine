@@ -24,7 +24,7 @@ unsigned Cable::addContact(Contact *contact, unsigned limit) const {
     normal.normalize();
     real penetration = cableLength - maxLength;
     
-    contact->setData(body[0]->getPosition(), normal, penetration, body[0], body[1], restitution, 0.2);
+    contact->setData((body[0]->getPosition()+body[1]->getPosition())*0.5, normal*-1, penetration, body[0], body[1], 0.5, 0.8);
     return 1;
 }
 
