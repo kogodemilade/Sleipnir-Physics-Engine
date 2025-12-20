@@ -355,7 +355,7 @@ void Contact::calcDesiredDeltaVelocity(real duration){
     deltaVelocity.data[4] += inverseMass;
     deltaVelocity.data[8] += inverseMass;
 
-    real baumgarte_coeff = 0.2;
+    real baumgarte_coeff = 0.3;
     cyclone::Vector3 bias = contactNormal*(-baumgarte_coeff * penetration/duration);
     bias = contactToWorld.transformTranspose(bias);
     // bias.clamp(0.2f, -0.2f);
@@ -377,7 +377,7 @@ void Contact::calcDesiredDeltaVelocity(real duration){
         );
 
         //overwrite friction for now. remove later.
-        friction = 0.1;
+        // friction = 0.1;
     if (planarImpulse > impulseContact.x * friction)
     {
     real scale = (impulseContact.x * friction) / planarImpulse;
@@ -441,7 +441,7 @@ void Contact::fixInterpenetration(){ //TODO: Code for this function is pretty ug
 the contact normal, due to angular inertia only.*/
 
 /*Limit for amount of angular Movement caused by resolving interpenetration*/
-real angularLimitConstant = (real)0.2f;
+real angularLimitConstant = (real)0.5f;
 real limit = angularLimitConstant * relativeContactPosition[0].magnitude();
 totalInertia = 0;
 
@@ -491,7 +491,7 @@ for (unsigned i=0; i<2; i++){
     Vector3 impulsePerMove = body[0]->getInvInertiaTensorWorld().transform(impulsiveTorque);
 
     /*Multiply by inertia to get one unit of movement*/
-    Vector3 rotationPerMove = impulsePerMove * (1/(angularInertia[0]+0.00001f));
+    Vector3 rotationPerMove = impulsePerMove * (1/(angularInertia[0]+0.000001f));
 
     /*Multiply by angular move to get the total rotation*/
     Vector3 rotation = rotationPerMove*angularMove;

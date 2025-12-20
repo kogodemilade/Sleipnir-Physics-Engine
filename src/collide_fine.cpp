@@ -185,7 +185,7 @@ unsigned CollisionDetector::boxAndHalfSpace(Box &box, Plane &plane, CollisionDat
             cyclone::Vector3 contactPoint = vertexPos - plane.normal * vertexDist;
             real penetration = fabs(plane.offset - vertexDist);
 
-            contact.setData(contactPoint, plane.normal, penetration, plane.body, box.body, data->restitution, data->friction); //points from plane to box
+            contact.setData(contactPoint, plane.normal, penetration, plane.body, box.body, 0.05, 0.1); //points from plane to box
 
             data->contacts.push_back(std::move(contact));
             contactsUsed++;
@@ -254,6 +254,7 @@ real CollisionDetector::transformToAxis(const Box &box, const cyclone::Vector3 &
     real halfSizeX = box.halfSize.x * real_abs(axis*box.getAxis(0).returnNormalizedVec());
     real halfSizeY = box.halfSize.y * real_abs(axis*box.getAxis(1).returnNormalizedVec());
     real halfSizeZ =  box.halfSize.z * real_abs(axis*box.getAxis(2).returnNormalizedVec());
+    real check_=real_abs(axis*box.getAxis(2));
     return box.halfSize.x * real_abs(axis*box.getAxis(0)) +
         box.halfSize.y * real_abs(axis*box.getAxis(1))+
         box.halfSize.z * real_abs(axis*box.getAxis(2));
@@ -334,7 +335,7 @@ void CollisionDetector::fillPointFaceBox(const Box &box1, const Box &box2, const
     cyclone::Vector3 contactpoint = box2.getTransform() * vertex; //Debugging reasons, delete later
 
     //Create the contact data
-    contact.setData(box2.getTransform() * vertex, normal, fabs(pen), box1.body, box2.body, data->restitution, data->friction); //Points from box1 to box2 (I think?)
+    contact.setData(box2.getTransform() * vertex, normal, fabs(pen), box1.body, box2.body, 0.2, 0.0); //Points from box1 to box2 (I think?)
     data->contacts.push_back(std::move(contact));
 }
 
@@ -387,6 +388,10 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
     //We start assuming there is no contact
     real pen = REAL_MAX;
     unsigned best = 0xffffff;
+    if (box1.body->name == "9" && box2.body->name == "8"){
+        bool stop;
+        stop = 1;
+    }
 
     /*Now we check each axes, returning if it gives us a 
     separating axis, and keeping track of the axis with the 
@@ -479,7 +484,7 @@ unsigned CollisionDetector::boxAndBox(Box &box1, Box &box2, CollisionData *data)
 
         /*We can fill the contact*/
          Contact contact;
-        contact.setData(vertex, axis, fabs(pen), box1.body, box2.body, data->restitution, data->friction); //tbh idek about this one...
+        contact.setData(vertex, axis, fabs(pen), box1.body, box2.body, 0.5, 0.0); //tbh idek about this one...
         data->contacts.push_back(std::move(contact));
 
         data->addContacts(1);

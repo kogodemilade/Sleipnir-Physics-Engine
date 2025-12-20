@@ -56,16 +56,40 @@ void DrawRigidBox(
     rlPopMatrix();
 }
 
+void DrawGridXZ(::Vector3 center, float size, float spacing) {
+    int lines = (int)(size / spacing) + 1;
+    float halfSize = size * 0.5f;
+    
+    // X lines (parallel to X axis)
+    for (int i = 0; i <= lines; i++) {
+        float z = center.z - halfSize + i * spacing;
+        DrawLine3D(
+            {center.x - halfSize, center.y, z},
+            {center.x + halfSize, center.y, z},
+            DARKGRAY
+        );
+    }
+    
+    // Z lines (parallel to Z axis)
+    for (int i = 0; i <= lines; i++) {
+        float x = center.x - halfSize + i * spacing;
+        DrawLine3D(
+            {x, center.y, center.z - halfSize},
+            {x, center.y, center.z + halfSize},
+            DARKGRAY
+        );
+    }
+}
 
 //Function to create Dominos
 void createDominos(unsigned numOfBoxes, std::vector<cyclone::RigidBody*> &Bodies, std::vector<cyclone::Box*> &Boxes, cyclone::World &world_, cyclone::real mass_, cyclone::real height_ratio, cyclone::real spacing, cyclone::real spacing_ratio, const cyclone::Vector3 &dimensions){
     for (int i =1; i<numOfBoxes+1; i++){
 
-        cyclone::Vector3 rotational_shift_real(0, 0.1*(i-1), 0);
-        
+        cyclone::Vector3 rotational_shift_real(0, 0.05*(i-1), 0);        
 
         cyclone::Quaternion angular_position = rotational_shift_real.toQuaternion();
-        cyclone::real lateral_shift = spacing*(i*0.4);
+        cyclone::real lateral_shift = spacing*(i*0.1);
+        // cyclone::real lateral_shift = 0;
         //Convenience
         cyclone::Matrix3 IdentityMatrix, ZeroMatrix3;
         IdentityMatrix.identityMatrix();
@@ -79,7 +103,7 @@ void createDominos(unsigned numOfBoxes, std::vector<cyclone::RigidBody*> &Bodies
         // cyclone::Vector3 dominoPos = cyclone::Vector3(x_pos, dimensions.y*0.5, 1);
         // dominoPos.x+= dimensions.x*i + spacingRatio*i*spacing;
         cyclone::Quaternion dominoOrient = angular_position;
-        cyclone::real mass = mass_ ;
+        cyclone::real mass = mass_;
         cyclone::RigidBody* domino = new cyclone::RigidBody;
         domino->setMass(mass);
         // domino->setPosition(dominoPos);
@@ -98,8 +122,10 @@ void createDominos(unsigned numOfBoxes, std::vector<cyclone::RigidBody*> &Bodies
         dominoInertiaMatrix.setDiagonal(dominoix, dominoiy, dominoiz);
         dominoInertiaMatrix = dominoInertiaMatrix * (domino->getMass()/12);
         domino->setInertiaTensor(dominoInertiaMatrix);
-        domino->name = (char)i;
-        domino->setSleepEpsilon(0.02);
+        domino->setLinearDamping(0.99);
+        domino->setAngularDamping(0.99);
+        domino->name = std::to_string(i);
+        // domino->setSleepEpsilon(0.02);
         domino->calculateDerivedData();
 
         cyclone::Box* dominoBox = new cyclone::Box;
@@ -133,7 +159,7 @@ camera.up       = { 0.0f, 1.0f, 0.0f };
 camera.fovy     = 60.0f;
 camera.projection = CAMERA_PERSPECTIVE;
 
-World world(1000, 1000);
+World world(1000, 1500);
 cyclone::Gravity gravity(cyclone::Vector3(0, -9.81f, 0));
 
 //Convenience
@@ -179,8 +205,8 @@ std::vector<cyclone::Box*> boxes;
 std::vector<cyclone::RigidBody*> bodies;
 
 
-createDominos(10, bodies, boxes, world, 10, 0.05, 0.05, 1.1, cyclone::Vector3(0.05, 0.5, 0.2));
-
+createDominos(20, bodies, boxes, world, 10, 0.03, 0.03, 1.01, cyclone::Vector3(0.03, 0.5, 0.2));
+//5k cm3
 //add gravity
 for (auto body: bodies){
     world.addBodies(body);
@@ -195,7 +221,7 @@ int i = 0;
 const float physics_dt = 0.008f;            
 float accumulator = 0.0f;
 auto previous = std::chrono::high_resolution_clock::now();
-
+// bool second = false;
 int iter = 0;
 while (!WindowShouldClose()) {
     auto now = std::chrono::high_resolution_clock::now();
@@ -212,7 +238,7 @@ while (!WindowShouldClose()) {
         world.startFrame();
         
         if(IsKeyPressed(KEY_K)){
-        bodies[0]->addForceAtBodyPoint(cyclone::Vector3(-400, 0, 0), cyclone::Vector3(-bodies[0]->getDimension('w')*0.99, bodies[0]->getDimension('h')*0.99, 0));
+        bodies[0]->addForceAtBodyPoint(cyclone::Vector3(-600, 0, 0), cyclone::Vector3(-bodies[0]->getDimension('w')*0.99, bodies[0]->getDimension('h')*0.99, 0));
         }
             // if( IsKeyDown(KEY_K)){
             world.runPhysics(physics_dt);
@@ -246,6 +272,7 @@ while (!WindowShouldClose()) {
     BeginMode3D(camera);
 
     DrawPlane({0,0,0}, {40,40}, WHITE);
+    DrawGridXZ({0,0,0}, 40, 0.5);
 
     for (auto box: boxes){
     DrawRigidBox(

@@ -124,13 +124,13 @@ class Vector3 {
 
     /*Clamp values on all dimensions between a min and max value*/
     void clamp(real maxValue, real minValue){
-        if (x > maxValue) x == maxValue;
-        if (y > maxValue) y == maxValue;
-        if (z > maxValue) z == maxValue;
+        if (x > maxValue) x = maxValue;
+        if (y > maxValue) y = maxValue;
+        if (z > maxValue) z = maxValue;
 
-        if (x < minValue) x == minValue;
-        if (y < minValue) y == minValue;
-        if (z < minValue) z == minValue;
+        if (x < minValue) x = minValue;
+        if (y < minValue) y = minValue;
+        if (z < minValue) z = minValue;
 
     }
 
@@ -418,9 +418,10 @@ class Quaternion {
     /*Creates a new instance of the quaternion class with 4 real numbers */
     Quaternion();
 
-    Quaternion operator ^(real power){
-        //Finish later
-    }
+    // Quaternion operator ^(real power){
+    //     //Finish later
+    //     return;
+    // }
 
     /*Normalizes the quaternion to unit length, making it a valid orientation quaternion*/
     void normalize();

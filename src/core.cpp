@@ -64,11 +64,14 @@ Matrix3 cyclone::Vector3::skewSymmetricMatrix(){
 
 cyclone::Quaternion cyclone::Vector3::toQuaternion()const{
     cyclone::Vector3 copy = *this;
-    // copy.normalize();
     cyclone::real angle = copy.magnitude();
 
+    if (real_abs(angle) < 1e-6){
+        return cyclone::Quaternion(1, 0, 0, 0);
+    }
+
     cyclone::real half = angle*0.5f;
-    cyclone::real s = sin(half);
+    cyclone::real s = sin(half)/angle;
 
     cyclone::Quaternion q;
     q.w = cos(half);
@@ -484,7 +487,7 @@ void Matrix3::setOrientation(const cyclone::Quaternion &q){
     data[1] = 2*(q.x*q.y + q.z*q.w);
     data[2] = 2*(q.x*q.z - q.y*q.w);
     data[3] = 2*(q.x*q.y - q.z*q.w);
-    data[4] = 1 - (2*(q.z*q.x + q.z*q.z));
+    data[4] = 1 - (2*(q.x*q.x + q.z*q.z));
     data[5] = 2*(q.y*q.z + q.x*q.w);
     data[6] = 2*(q.x*q.z + q.y*q.w);
     data[7] = 2*(q.y*q.z - q.x*q.w);
@@ -605,33 +608,27 @@ void cyclone::Quaternion::rotate(const cyclone::Quaternion &other){
 }
 
 Matrix3 cyclone::Quaternion::toMatrix() const{
-    cyclone::real x_ = x;
-    cyclone::real y_ = y;
-    cyclone::real z_ = z;
-    cyclone::real w_ = w;
-
-    cyclone::real x2 = x_ + x_;
-    cyclone::real y2 = y_ + y_;
-    cyclone::real z2 = z_ + z_;
-
-    cyclone::real xx = x_ * x2;
-    cyclone::real yy = y_ * y2;
-    cyclone::real zz = z_ * z2;
-    cyclone::real xy = x_ * y2;
-    cyclone::real xz = x_ * z2;
-    cyclone::real yz = y_ * z2;
-    cyclone::real wx = w_ * x2;
-    cyclone::real wy = w_ * y2;
-    cyclone::real wz = w_ * z2;
-
+    cyclone::real x2 = x + x;
+    cyclone::real y2 = y + y;
+    cyclone::real z2 = z + z;
+    
+    cyclone::real xx = x * x2;
+    cyclone::real yy = y * y2;
+    cyclone::real zz = z * z2;
+    cyclone::real xy = x * y2;
+    cyclone::real xz = x * z2;
+    cyclone::real yz = y * z2;
+    cyclone::real wx = w * x2;
+    cyclone::real wy = w * y2;
+    cyclone::real wz = w * z2;
+    
     cyclone::real data[9] = {
         1.0f - (yy + zz), xy - wz,       xz + wy,
-        xy + wz,         1.0f - (xx + zz), yz - wx,
+        xy + wz,         1.0f - (xx + zz), yz - wx,  // FIXED!
         xz - wy,         yz + wx,        1.0f - (xx + yy)
     };
-    return Matrix3(
-        data
-    );
+    
+    return Matrix3(data);
 }
 
 glm::quat cyclone::Quaternion::toGlm()const{
